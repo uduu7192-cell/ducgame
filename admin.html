@@ -18,15 +18,30 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
+    <!-- MODAL ĐĂNG NHẬP ADMIN -->
+    <div id="admin-login-modal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
+        <div class="glass-panel border-2 border-yellow-500/60 w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4">
+            <div class="w-12 h-12 bg-amber-500 rounded-2xl mx-auto flex items-center justify-center text-black font-black text-2xl shadow-lg">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h3 class="text-xl font-black text-yellow-400 uppercase">XÁC THỰC QUẢN TRỊ</h3>
+            <p class="text-xs text-gray-400">Vui lòng nhập mật khẩu truy cập trang Admin</p>
+            <form onsubmit="handleAdminLogin(event)" class="space-y-3">
+                <input type="password" id="admin-pass-input" required placeholder="Nhập mật khẩu (100%)" class="w-full bg-black/80 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-yellow-300 text-center font-bold focus:border-amber-500 focus:outline-none">
+                <button type="submit" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs uppercase shadow-lg">TRUY CẬP HỆ THỐNG</button>
+            </form>
+        </div>
+    </div>
+
     <!-- HEADER ADMIN -->
-    <header class="glass-panel sticky top-0 z-50 border-b border-yellow-500/30 px-6 py-4 flex items-center justify-between">
+    <header class="glass-panel sticky top-0 z-40 border-b border-yellow-500/30 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center space-x-3">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-black text-xl shadow-lg">
                 <i class="fa-solid fa-user-shield"></i>
             </div>
             <div>
                 <h1 class="text-xl font-black text-yellow-400 tracking-wider">DUC ADMIN DASHBOARD</h1>
-                <p class="text-xs text-gray-400">Đồng bộ Cloud Realtime (Can thiệp & Quản lý đa thiết bị)</p>
+                <p class="text-xs text-gray-400">Đồng bộ Cloud Realtime (Tự động Reset Can thiệp khi sang Phiên mới)</p>
             </div>
         </div>
         <div class="flex items-center space-x-3">
@@ -51,7 +66,7 @@
                 <div class="text-3xl font-black text-blue-400 mt-1" id="stat-pending-count">0</div>
             </div>
             <div class="glass-panel p-5 rounded-2xl border-l-4 border-purple-500">
-                <div class="text-xs font-bold text-gray-400 uppercase">Thời Gian Phiên Hiện Tại</div>
+                <div class="text-xs font-bold text-gray-400 uppercase">Trạng Thái Phiên</div>
                 <div class="text-2xl font-black text-purple-400 mt-1 font-mono" id="admin-timer-display">--s</div>
             </div>
         </div>
@@ -70,7 +85,7 @@
             <div class="glass-panel rounded-2xl p-6">
                 <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
                     <h3 class="text-lg font-bold text-rose-400"><i class="fa-solid fa-sliders text-rose-500 mr-2"></i>Bảng Can Thiệp Kết Quả Phiên Hiện Tại</h3>
-                    <span class="text-xs text-yellow-300 font-bold bg-black/60 px-3 py-1 rounded-lg border border-gold-500/30">* Sau khi hết phiên, cài đặt sẽ tự động Reset về TỰ ĐỘNG</span>
+                    <span class="text-xs text-yellow-300 font-bold bg-black/60 px-3 py-1 rounded-lg border border-yellow-500/30">● Tự động Reset về TỰ ĐỘNG khi sang Phiên mới</span>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -156,7 +171,7 @@
                             <th class="p-3">Mật Khẩu</th>
                             <th class="p-3">Số Dư Hiện Tại</th>
                             <th class="p-3">Nhập Số Tiền Cần Thay Đổi</th>
-                            <th class="p-3">Thao Tác</th>
+                            <th class="p-3">Thao Tác Quản Lý</th>
                         </tr>
                     </thead>
                     <tbody id="user-table-body" class="divide-y divide-gray-800"></tbody>
@@ -189,7 +204,7 @@
         <!-- TAB LỊCH SỬ ONLINE -->
         <div id="tab-content-bets-online" class="hidden space-y-4">
             <div class="glass-panel rounded-2xl p-4 overflow-x-auto">
-                <h3 class="text-lg font-bold text-blue-400 mb-4"><i class="fa-solid fa-globe text-blue-500 mr-2"></i>Lịch Sử Đặt Cược Online (Thành viên hệ thống)</h3>
+                <h3 class="text-lg font-bold text-blue-400 mb-4"><i class="fa-solid fa-globe text-blue-500 mr-2"></i>Lịch Sử Đặt Cược Online</h3>
                 <table class="w-full text-left text-xs">
                     <thead class="bg-black/60 text-gray-400 uppercase">
                         <tr>
@@ -210,7 +225,7 @@
         <!-- TAB LỊCH SỬ OFFLINE -->
         <div id="tab-content-bets-offline" class="hidden space-y-4">
             <div class="glass-panel rounded-2xl p-4 overflow-x-auto">
-                <h3 class="text-lg font-bold text-purple-400 mb-4"><i class="fa-solid fa-computer text-purple-500 mr-2"></i>Lịch Sử Trò Chơi Offline (Trải nghiệm tại máy)</h3>
+                <h3 class="text-lg font-bold text-purple-400 mb-4"><i class="fa-solid fa-computer text-purple-500 mr-2"></i>Lịch Sử Trò Chơi Offline</h3>
                 <table class="w-full text-left text-xs">
                     <thead class="bg-black/60 text-gray-400 uppercase">
                         <tr>
@@ -230,7 +245,16 @@
     </main>
 
     <script>
-        // === CẤU HÌNH ĐÃ ĐƯỢC ĐỒNG BỘ CHUẨN VỚI DỰ ÁN GAME-ADDMIN ===
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const pass = document.getElementById('admin-pass-input').value.trim();
+            if (pass === '100%') {
+                document.getElementById('admin-login-modal').classList.add('hidden');
+            } else {
+                alert('Mật khẩu không chính xác!');
+            }
+        }
+
         const firebaseConfig = {
             apiKey: "AIzaSyDACn0LR27Fa1_zn1a_Kdo0-Nk6ZyZzOLi",
             authDomain: "game-addmin.firebaseapp.com",
@@ -248,9 +272,8 @@
         let onlineBetsData = {};
         let offlineBetsData = {};
         let controlsData = {};
-        let lastRoundId = -1;
+        let lastTrackedRoundId = -1;
 
-        // Lắng nghe realtime từ Firebase Cloud
         db.ref('duc_game/accounts').on('value', (snapshot) => {
             allAccounts = snapshot.val() || [];
             renderAccounts();
@@ -283,12 +306,19 @@
         function loadControlSettings() {
             ['taixiu', 'xocdia', 'baucua', 'baccarat', 'dragon', 'keno'].forEach(g => {
                 const el = document.getElementById(`ctrl-${g}`);
-                if (el && controlsData[g]) el.value = controlsData[g];
+                if (el) el.value = controlsData[g] || 'AUTO';
             });
         }
 
-        function resetControlsToAuto() {
-            db.ref('duc_game/controls').set({});
+        function resetAllControlsToAuto() {
+            db.ref('duc_game/controls').set({
+                taixiu: 'AUTO',
+                xocdia: 'AUTO',
+                baucua: 'AUTO',
+                baccarat: 'AUTO',
+                dragon: 'AUTO',
+                keno: 'AUTO'
+            });
         }
 
         function renderAccounts() {
@@ -303,11 +333,12 @@
                     <td class="p-3 font-mono text-gray-400">${u.password}</td>
                     <td class="p-3 font-bold text-emerald-400">${(u.balance || 0).toLocaleString('vi-VN')}đ</td>
                     <td class="p-3">
-                        <input type="number" id="input-amt-${idx}" placeholder="Số tiền (VD: 500000)" class="w-48 bg-black/70 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-yellow-300 focus:border-amber-500 focus:outline-none font-mono">
+                        <input type="number" id="input-amt-${idx}" placeholder="Số tiền (VD: 500000)" class="w-40 bg-black/70 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-yellow-300 focus:border-amber-500 focus:outline-none font-mono">
                     </td>
                     <td class="p-3 flex space-x-2">
                         <button onclick="handleCustomBalance('${u.username}', 'input-amt-${idx}', 'ADD')" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-lg text-xs shadow"><i class="fa-solid fa-plus mr-1"></i> Cộng</button>
-                        <button onclick="handleCustomBalance('${u.username}', 'input-amt-${idx}', 'SUB')" class="px-3 py-1.5 bg-rose-800 hover:bg-rose-700 text-white font-bold rounded-lg text-xs shadow"><i class="fa-solid fa-minus mr-1"></i> Trừ</button>
+                        <button onclick="handleCustomBalance('${u.username}', 'input-amt-${idx}', 'SUB')" class="px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow"><i class="fa-solid fa-minus mr-1"></i> Trừ</button>
+                        <button onclick="deleteAccount('${u.username}')" class="px-3 py-1.5 bg-rose-800 hover:bg-rose-700 text-white font-bold rounded-lg text-xs shadow border border-rose-500/50" title="Xóa vĩnh viễn tài khoản"><i class="fa-solid fa-trash-can mr-1"></i> Xóa</button>
                     </td>
                 </tr>
             `).join('');
@@ -327,6 +358,13 @@
             let idx = allAccounts.findIndex(a => a.username === username);
             if (idx !== -1) {
                 allAccounts[idx].balance = Math.max(0, (allAccounts[idx].balance || 0) + amount);
+                db.ref('duc_game/accounts').set(allAccounts);
+            }
+        }
+
+        function deleteAccount(username) {
+            if (confirm(`Bạn có chắc chắn muốn XÓA vĩnh viễn tài khoản "${username}" không?`)) {
+                allAccounts = allAccounts.filter(a => a.username !== username);
                 db.ref('duc_game/accounts').set(allAccounts);
             }
         }
@@ -406,20 +444,23 @@
             document.getElementById(`tab-btn-${tab}`).className = "px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-black";
         }
 
+        // TỰ ĐỘNG RESET BẢNG CAN THIỆP KHI SANG PHIÊN MỚI
         setInterval(() => {
-            const now = Math.floor(Date.now() / 1000);
-            const cycleSeconds = 40;
-            const roundId = Math.floor(now / cycleSeconds);
-            const secInCycle = now % cycleSeconds;
-            const timeLeft = secInCycle < 30 ? (30 - secInCycle) : (cycleSeconds - secInCycle);
+            const nowSeconds = Math.floor(Date.now() / 1000);
+            const cycleDuration = 40;
+            const currentRoundId = Math.floor(nowSeconds / cycleDuration);
+            const secInCycle = nowSeconds % cycleDuration;
+            const timeLeft = secInCycle < 30 ? (30 - secInCycle) : (cycleDuration - secInCycle);
 
             const timerDisp = document.getElementById('admin-timer-display');
-            if(timerDisp) timerDisp.innerText = secInCycle < 30 ? `Cược (${timeLeft}s)` : `Nặn (${timeLeft}s)`;
-
-            if (lastRoundId !== -1 && roundId !== lastRoundId) {
-                resetControlsToAuto();
+            if(timerDisp) {
+                timerDisp.innerText = secInCycle < 30 ? `Cược (${timeLeft}s)` : `Nặn (${timeLeft}s)`;
             }
-            lastRoundId = roundId;
+
+            if (lastTrackedRoundId !== -1 && currentRoundId !== lastTrackedRoundId) {
+                resetAllControlsToAuto();
+            }
+            lastTrackedRoundId = currentRoundId;
         }, 500);
     </script>
 </body>
