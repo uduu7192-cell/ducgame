@@ -80,9 +80,6 @@
 
         @keyframes slotSpin { 0% { transform: translateY(0); } 50% { transform: translateY(-20px); } 100% { transform: translateY(0); } }
         .animate-slot { animation: slotSpin 0.15s infinite linear; }
-
-        .fish-target { position: absolute; cursor: pointer; transition: transform 0.1s; user-select: none; }
-        .fish-target:active { transform: scale(0.9); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
@@ -303,16 +300,15 @@
         const GAME_LIST = [
             { id: 'taixiu', name: 'TÀI XỈU 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-dice', color: 'from-red-600 to-amber-700' },
             { id: 'xocdia', name: 'XÓC ĐĨA 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-circle-dot', color: 'from-emerald-600 to-teal-800' },
-            { id: 'baucua', name: 'BẦU CUA 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-fish', color: 'from-orange-600 to-rose-700' },
-            { id: 'baccarat', name: 'BACCARAT 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-spade', color: 'from-indigo-600 to-blue-800' },
-            { id: 'dragon', name: 'RỒNG HỔ 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-dragon', color: 'from-red-700 to-amber-600' },
+            { id: 'baucua', name: 'BẦU CUA 24/7', sub: 'Tối đa 3 con/phiên', icon: 'fa-fish', color: 'from-orange-600 to-rose-700' },
+            { id: 'baccarat', name: 'BACCARAT 24/7', sub: 'Cược 1 bên + Cửa Hòa', icon: 'fa-spade', color: 'from-indigo-600 to-blue-800' },
+            { id: 'dragon', name: 'RỒNG HỔ 24/7', sub: 'Cược 1 bên + Cửa Hòa', icon: 'fa-dragon', color: 'from-red-700 to-amber-600' },
             { id: 'slot', name: 'QUAY HŨ 3 HÌNH', sub: '2 hình kề thắng', icon: 'fa-gem', color: 'from-purple-600 to-pink-700' },
             { id: 'wheel', name: 'VÒNG QUAY MAY MẮN', sub: 'Thưởng trực tiếp', icon: 'fa-dharmachakra', color: 'from-yellow-500 to-amber-700' },
             { id: 'poker', name: 'POKER MINI', sub: 'Chia bài & Tự lật', icon: 'fa-heart', color: 'from-rose-700 to-red-900' },
             { id: 'crash', name: 'MÁY BAY 24/7', sub: 'Nổ Ngẫu Nhiên', icon: 'fa-plane-departure', color: 'from-sky-600 to-blue-800' },
             { id: 'lode', name: 'XỔ SỐ LÔ ĐỀ', sub: 'Chạy số từng con', icon: 'fa-clover', color: 'from-green-600 to-emerald-800' },
             { id: 'lieng', name: 'LIÊNG 3 LÁ', sub: 'Cược trước & Tự lật', icon: 'fa-layer-group', color: 'from-blue-700 to-indigo-900' },
-            { id: 'sanca', name: 'BẮN CÁ ĐẠI DƯƠNG', sub: 'Đạn Dễ Hạ Cá', icon: 'fa-water', color: 'from-cyan-600 to-blue-900' },
             { id: 'keno', name: 'KENO 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-bowling-ball', color: 'from-fuchsia-600 to-pink-800' }
         ];
 
@@ -374,47 +370,98 @@
 
             let ctrlMode = globalControls[gameType] || 'AUTO';
 
+            let nowTime = new Date();
+            let currentMinute = nowTime.getMinutes();
+            let currentHour = nowTime.getHours();
+            let timeFactor = (currentHour * 60 + currentMinute + roundId) % 10; 
+            let allowUserWin = (timeFactor < 3); // Tỉ lệ 30% thắng (1-3/10)
+
             if (gameType === 'taixiu') {
                 if (ctrlMode === 'TAI') return [5, 5, 5];
                 if (ctrlMode === 'XIU') return [1, 2, 3];
-                let targetTai = userTxBets.TAI < userTxBets.XIU;
-                if (userTxBets.TAI === userTxBets.XIU) targetTai = getDeterministicRandom(roundId * 3) > 0.5;
-                return targetTai ? [4, 5, 5] : [1, 2, 4];
+
+                if (userTxBets.TAI > 0) {
+                    return allowUserWin ? [5, 4, 4] : [1, 2, 2];
+                }
+                if (userTxBets.XIU > 0) {
+                    return allowUserWin ? [1, 2, 3] : [5, 5, 4];
+                }
+                return getDeterministicRandom(roundId * 3) > 0.5 ? [5, 4, 4] : [1, 2, 3];
             } 
             else if (gameType === 'xocdia') {
                 if (ctrlMode === 'CHAN') return [1, 1, 0, 0];
                 if (ctrlMode === 'LE') return [1, 1, 1, 0];
+                if (ctrlMode === '3TRANG') return [0, 0, 0, 1];
+                if (ctrlMode === '3DO') return [1, 1, 1, 0];
                 if (ctrlMode === 'TRANG4') return [0, 0, 0, 0];
                 if (ctrlMode === 'DEN4') return [1, 1, 1, 1];
-                let targetChan = userXdBets.CHAN < userXdBets.LE;
-                if (userXdBets.CHAN === userXdBets.LE) targetChan = getDeterministicRandom(roundId * 4) > 0.5;
-                return targetChan ? [1, 1, 0, 0] : [1, 0, 0, 0];
+
+                let hasChan = userXdBets['CHAN'] > 0;
+                let hasLe = userXdBets['LE'] > 0;
+
+                if (hasChan) {
+                    return allowUserWin ? [1, 1, 0, 0] : [1, 1, 1, 0];
+                }
+                if (hasLe) {
+                    return allowUserWin ? [1, 1, 1, 0] : [1, 1, 0, 0];
+                }
+                return getDeterministicRandom(roundId * 4) > 0.5 ? [1, 1, 0, 0] : [0, 0, 0, 1];
             } 
             else if (gameType === 'baucua') {
                 if (ctrlMode !== 'AUTO' && !isNaN(parseInt(ctrlMode))) {
                     let forced = parseInt(ctrlMode);
                     return [forced, forced, (forced + 1) % 6];
                 }
-                return [Math.floor(getDeterministicRandom(roundId * 4 + 1) * 6), Math.floor(getDeterministicRandom(roundId * 4 + 2) * 6), Math.floor(getDeterministicRandom(roundId * 4 + 3) * 6)];
+                let chosenSym = Object.keys(userBcBets).find(k => k !== 'roundId' && k !== 'processed' && userBcBets[k] > 0);
+                const bcMap = { 'BAU': 0, 'CUA': 1, 'TOM': 2, 'CA': 3, 'GA': 4, 'NAI': 5 };
+                
+                if (chosenSym && allowUserWin) {
+                    let tId = bcMap[chosenSym];
+                    return [tId, Math.floor(Math.random()*6), Math.floor(Math.random()*6)];
+                }
+                return [
+                    Math.floor(getDeterministicRandom(roundId * 4 + 1) * 6), 
+                    Math.floor(getDeterministicRandom(roundId * 4 + 2) * 6), 
+                    Math.floor(getDeterministicRandom(roundId * 4 + 3) * 6)
+                ];
             }
             else if (gameType === 'baccarat') {
                 if (ctrlMode === 'PLAYER') return { p1: 5, p2: 4, b1: 1, b2: 2 };
                 if (ctrlMode === 'BANKER') return { p1: 1, p2: 2, b1: 5, b2: 4 };
                 if (ctrlMode === 'TIE') return { p1: 4, p2: 5, b1: 4, b2: 5 };
-                return { p1: 4, p2: 5, b1: 1, b2: 2 };
+
+                if (userBacBets.PLAYER > 0) {
+                    return allowUserWin ? { p1: 5, p2: 4, b1: 1, b2: 2 } : { p1: 1, p2: 2, b1: 5, b2: 4 };
+                }
+                if (userBacBets.BANKER > 0) {
+                    return allowUserWin ? { p1: 1, p2: 2, b1: 5, b2: 4 } : { p1: 5, p2: 4, b1: 1, b2: 2 };
+                }
+                return { p1: 5, p2: 4, b1: 2, b2: 1 };
             } 
             else if (gameType === 'dragon') {
                 if (ctrlMode === 'DRAGON') return { d: 13, t: 2 };
                 if (ctrlMode === 'TIGER') return { d: 2, t: 13 };
                 if (ctrlMode === 'TIE') return { d: 10, t: 10 };
-                return { d: 12, t: 3 };
+
+                if (userDtBets.DRAGON > 0) {
+                    return allowUserWin ? { d: 13, t: 2 } : { d: 2, t: 13 };
+                }
+                if (userDtBets.TIGER > 0) {
+                    return allowUserWin ? { d: 2, t: 13 } : { d: 13, t: 2 };
+                }
+                return { d: 11, t: 3 };
             } 
             else if (gameType === 'keno') {
                 if (ctrlMode === 'OVER') return 88;
                 if (ctrlMode === 'UNDER') return 12;
-                let targetOver = userKenoBets.OVER < userKenoBets.UNDER;
-                if (userKenoBets.OVER === userKenoBets.UNDER) targetOver = getDeterministicRandom(roundId * 7.5) > 0.5;
-                return targetOver ? Math.floor(getDeterministicRandom(roundId * 3.1) * 49) + 51 : Math.floor(getDeterministicRandom(roundId * 2.7) * 49) + 1;
+
+                if (userKenoBets.OVER > 0) {
+                    return allowUserWin ? 75 : 25;
+                }
+                if (userKenoBets.UNDER > 0) {
+                    return allowUserWin ? 25 : 75;
+                }
+                return Math.floor(getDeterministicRandom(roundId * 3.1) * 49) + 51;
             }
         }
 
@@ -560,7 +607,6 @@
 
         function showScreen(screen) {
             AudioEngine.playClick();
-            if(fishInterval) { clearInterval(fishInterval); fishInterval = null; }
             if(crashLoopInterval) { clearInterval(crashLoopInterval); crashLoopInterval = null; }
             document.getElementById('screen-lobby').classList.add('hidden'); document.getElementById('screen-game').classList.add('hidden');
             if (screen === 'lobby') { currentGame = null; document.getElementById('screen-lobby').classList.remove('hidden'); }
@@ -616,7 +662,6 @@
             else if (gameKey === 'crash') initCrash(board);
             else if (gameKey === 'lode') initLoDe(board);
             else if (gameKey === 'lieng') initLieng(board);
-            else if (gameKey === 'sanca') initSanCa(board);
             else if (gameKey === 'keno') initKeno(board);
 
             updateOfflineButtonLabels();
@@ -704,7 +749,7 @@
         }
 
         // --- 2. XÓC ĐĨA 24/7 ---
-        let userXdBets = { roundId: -1, CHAN: 0, LE: 0, processed: false };
+        let userXdBets = { roundId: -1, CHAN: 0, LE: 0, '3TRANG': 0, '3DO': 0, '2TRANG2DEN': 0, '4TRANG': 0, '4DEN': 0, processed: false };
         function initXocDiaUI(container) {
             container.innerHTML = `
                 <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
@@ -724,42 +769,102 @@
                             </div>
                             <div id="xd-bowl" class="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-700 via-teal-900 to-emerald-950 border-4 border-gold-400 shadow-2xl flex flex-col items-center justify-center bowl-touch-area">
                                 <i class="fa-solid fa-lock text-yellow-300 mb-1" id="xd-lock-icon"></i>
-                                <span class="text-[11px] font-bold text-yellow-200 text-center" id="xd-bowl-text">KÉO MỞ ĐĨA</span>
+                                <span class="text-[11px] font-bold text-yellow-200 text-center" id="xd-bowl-text">KÉO Mở ĐĨA</span>
                             </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-3 w-full">
-                        <button onclick="placeXDBet('CHAN')" class="bg-red-900/60 border border-red-500 p-3 rounded-xl text-center"><span class="font-bold text-red-400 text-sm">CHẮN (x1.95)</span><div class="text-xs text-yellow-300 font-digits"><span id="xd-CHAN">0</span>đ</div></button>
-                        <button onclick="placeXDBet('LE')" class="bg-gray-800 border border-gray-500 p-3 rounded-xl text-center"><span class="font-bold text-white text-sm">LẺ (x1.95)</span><div class="text-xs text-yellow-300 font-digits"><span id="xd-LE">0</span>đ</div></button>
+                    
+                    <div class="space-y-2 w-full">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="placeXDBet('CHAN')" class="bg-red-900/60 border border-red-500 p-2.5 rounded-xl text-center">
+                                <span class="font-bold text-red-400 text-xs sm:text-sm">CHẮN (x1.95)</span>
+                                <div class="text-xs text-yellow-300 font-digits"><span id="xd-CHAN">0</span>đ</div>
+                            </button>
+                            <button onclick="placeXDBet('LE')" class="bg-gray-800 border border-gray-500 p-2.5 rounded-xl text-center">
+                                <span class="font-bold text-white text-xs sm:text-sm">LẺ (x1.95)</span>
+                                <div class="text-xs text-yellow-300 font-digits"><span id="xd-LE">0</span>đ</div>
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="placeXDBet('3TRANG')" class="bg-black/60 border border-gray-600 p-2 rounded-xl text-center">
+                                <span class="font-bold text-gray-200 text-xs">3 Trắng 1 Đỏ (x3.8)</span>
+                                <div class="text-xs text-yellow-300 font-digits"><span id="xd-3TRANG">0</span>đ</div>
+                            </button>
+                            <button onclick="placeXDBet('2TRANG2DEN')" class="bg-black/60 border border-amber-500/50 p-2 rounded-xl text-center">
+                                <span class="font-bold text-yellow-400 text-xs">2 Trắng 2 Đỏ (x1.95)</span>
+                                <div class="text-xs text-yellow-300 font-digits"><span id="xd-2TRANG2DEN">0</span>đ</div>
+                            </button>
+                            <button onclick="placeXDBet('3DO')" class="bg-black/60 border border-rose-600/60 p-2 rounded-xl text-center">
+                                <span class="font-bold text-rose-400 text-xs">3 Đỏ 1 Trắng (x3.8)</span>
+                                <div class="text-xs text-yellow-300 font-digits"><span id="xd-3DO">0</span>đ</div>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="placeXDBet('4TRANG')" class="bg-gray-900 border border-white/60 p-2.5 rounded-xl text-center">
+                                <span class="font-bold text-white text-xs">4 TRẮNG (x12)</span>
+                                <div class="text-xs text-yellow-300 font-digits"><span id="xd-4TRANG">0</span>đ</div>
+                            </button>
+                            <button onclick="placeXDBet('4DEN')" class="bg-red-950 border border-red-600 p-2.5 rounded-xl text-center">
+                                <span class="font-bold text-red-500 text-xs">4 ĐỎ / 4 ĐEN (x12)</span>
+                                <div class="text-xs text-yellow-300 font-digits"><span id="xd-4DEN">0</span>đ</div>
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
             setupDragBowl('xd-bowl', () => getGlobalRoundState(40, 30).phase, checkXDReward);
         }
+
         function placeXDBet(side) {
             const st = getGlobalRoundState(40, 30);
             if (st.phase !== 'BETTING') return showToast('Hết thời gian cược 30s!');
-            if (userXdBets.roundId !== st.roundId) { userXdBets = { roundId: st.roundId, CHAN: 0, LE: 0, processed: false }; }
-            const otherSide = side === 'CHAN' ? 'LE' : 'CHAN';
-            if (userXdBets[otherSide] > 0) return showToast('Chỉ được cược 1 bên!');
+            if (userXdBets.roundId !== st.roundId) { 
+                userXdBets = { roundId: st.roundId, CHAN: 0, LE: 0, '3TRANG': 0, '3DO': 0, '2TRANG2DEN': 0, '4TRANG': 0, '4DEN': 0, processed: false }; 
+            }
+
+            if (side === 'CHAN' && userXdBets.LE > 0) return showToast('Chỉ được chọn Chắn hoặc Lẻ!');
+            if (side === 'LE' && userXdBets.CHAN > 0) return showToast('Chỉ được chọn Chắn hoặc Lẻ!');
+
             if (currentUser.balance < selectedChip) return showToast('Số dư không đủ!');
             AudioEngine.playClick(); currentUser.balance -= selectedChip; saveUser();
             userXdBets[side] += selectedChip; document.getElementById(`xd-${side}`).innerText = userXdBets[side].toLocaleString('vi-VN');
         }
+
         function checkXDReward() {
             const st = getGlobalRoundState(40, 30);
             if (userXdBets.roundId === st.roundId && !userXdBets.processed) {
                 userXdBets.processed = true;
                 const res = getGlobalGameResult('xocdia', st.roundId);
-                const reds = res.filter(r => r === 1).length, winSide = reds % 2 === 0 ? 'CHAN' : 'LE';
+                const reds = res.filter(r => r === 1).length;
+                const whites = 4 - reds;
+
                 let winAmt = 0;
-                if (winSide === 'CHAN') winAmt += userXdBets.CHAN * 1.95;
-                if (winSide === 'LE') winAmt += userXdBets.LE * 1.95;
+                let totalBet = 0;
+
+                Object.keys(userXdBets).forEach(k => {
+                    if(k !== 'roundId' && k !== 'processed') totalBet += userXdBets[k];
+                });
+
+                if (reds % 2 === 0 && userXdBets.CHAN > 0) winAmt += userXdBets.CHAN * 1.95;
+                if (reds % 2 !== 0 && userXdBets.LE > 0) winAmt += userXdBets.LE * 1.95;
+
+                if (whites === 3 && userXdBets['3TRANG'] > 0) winAmt += userXdBets['3TRANG'] * 3.8;
+                if (reds === 3 && userXdBets['3DO'] > 0) winAmt += userXdBets['3DO'] * 3.8;
+                if (reds === 2 && whites === 2 && userXdBets['2TRANG2DEN'] > 0) winAmt += userXdBets['2TRANG2DEN'] * 1.95;
+                if (whites === 4 && userXdBets['4TRANG'] > 0) winAmt += userXdBets['4TRANG'] * 12;
+                if (reds === 4 && userXdBets['4DEN'] > 0) winAmt += userXdBets['4DEN'] * 12;
 
                 winAmt = Math.floor(winAmt);
-                let totalBet = userXdBets.CHAN + userXdBets.LE;
-                if (winAmt > 0) { currentUser.balance += winAmt; saveUser(); showToast(`🎉 Thắng Xóc Đĩa +${winAmt.toLocaleString('vi-VN')}đ!`, true); recordBetHistory('xocdia', 'Xóc Đĩa 24/7', winSide, totalBet, 'WIN', winAmt); }
-                else if (totalBet > 0) { showToast('Chúc bạn may mắn phiên sau!'); recordBetHistory('xocdia', 'Xóc Đĩa 24/7', userXdBets.CHAN > 0 ? 'CHẮN' : 'LẺ', totalBet, 'LOSE', 0); }
+                if (winAmt > 0) { 
+                    currentUser.balance += winAmt; saveUser(); 
+                    showToast(`🎉 Thắng Xóc Đĩa +${winAmt.toLocaleString('vi-VN')}đ!`, true); 
+                    recordBetHistory('xocdia', 'Xóc Đĩa 24/7', `${reds} Đỏ ${whites} Trắng`, totalBet, 'WIN', winAmt); 
+                } else if (totalBet > 0) { 
+                    showToast('Chúc bạn may mắn phiên sau!'); 
+                    recordBetHistory('xocdia', 'Xóc Đĩa 24/7', 'Đa cửa', totalBet, 'LOSE', 0); 
+                }
             }
         }
 
@@ -808,8 +913,10 @@
             if (st.phase !== 'BETTING') return showToast('Hết thời gian cược 30s!');
             if (userBcBets.roundId !== st.roundId) { userBcBets = { roundId: st.roundId, BAU:0, CUA:0, TOM:0, CA:0, GA:0, NAI:0, processed: false }; }
             
-            let alreadyChosen = Object.keys(userBcBets).some(k => k !== 'roundId' && k !== 'processed' && k !== sym && userBcBets[k] > 0);
-            if (alreadyChosen) return showToast('Bầu Cua chỉ được phép cược 1 bên (1 con duy nhất)!');
+            const chosenAnimals = Object.keys(userBcBets).filter(k => k !== 'roundId' && k !== 'processed' && userBcBets[k] > 0);
+            if (userBcBets[sym] === 0 && chosenAnimals.length >= 3) {
+                return showToast('Chỉ được chọn cược tối đa 3 con trong 1 phiên!');
+            }
 
             if (currentUser.balance < selectedChip) return showToast('Số dư không đủ!');
             AudioEngine.playClick(); currentUser.balance -= selectedChip; saveUser();
@@ -821,24 +928,27 @@
                 userBcBets.processed = true;
                 const res = getGlobalGameResult('baucua', st.roundId);
                 const bcMap = { 'BAU': 0, 'CUA': 1, 'TOM': 2, 'CA': 3, 'GA': 4, 'NAI': 5 };
-                let chosenSym = Object.keys(userBcBets).find(k => k !== 'roundId' && k !== 'processed' && userBcBets[k] > 0);
+                let totalWin = 0, totalBet = 0;
                 
-                if (chosenSym) {
-                    let betVal = userBcBets[chosenSym];
-                    let targetId = bcMap[chosenSym];
-                    let matches = res.filter(val => val === targetId).length;
-                    let totalWin = 0;
-                    if (matches > 0) {
-                        totalWin = betVal + (betVal * matches);
+                Object.keys(bcMap).forEach(sym => {
+                    let betVal = userBcBets[sym];
+                    if (betVal > 0) {
+                        totalBet += betVal;
+                        let targetId = bcMap[sym];
+                        let matches = res.filter(val => val === targetId).length;
+                        if (matches > 0) {
+                            totalWin += betVal + (betVal * matches);
+                        }
                     }
-                    if (totalWin > 0) {
-                        currentUser.balance += totalWin; saveUser();
-                        showToast(`🎉 Thắng Bầu Cua +${totalWin.toLocaleString('vi-VN')}đ!`, true);
-                        recordBetHistory('baucua', 'Bầu Cua 24/7', chosenSym, betVal, 'WIN', totalWin);
-                    } else {
-                        showToast('Chúc bạn may mắn phiên sau!');
-                        recordBetHistory('baucua', 'Bầu Cua 24/7', chosenSym, betVal, 'LOSE', 0);
-                    }
+                });
+
+                if (totalWin > 0) {
+                    currentUser.balance += totalWin; saveUser();
+                    showToast(`🎉 Thắng Bầu Cua +${totalWin.toLocaleString('vi-VN')}đ!`, true);
+                    recordBetHistory('baucua', 'Bầu Cua 24/7', 'Đa cửa', totalBet, 'WIN', totalWin);
+                } else if (totalBet > 0) {
+                    showToast('Chúc bạn may mắn phiên sau!');
+                    recordBetHistory('baucua', 'Bầu Cua 24/7', 'Đa cửa', totalBet, 'LOSE', 0);
                 }
             }
         }
@@ -905,9 +1015,9 @@
             const st = getGlobalRoundState(40, 30);
             if (st.phase !== 'BETTING') return showToast('Hết thời gian cược 30s!');
             if (userBacBets.roundId !== st.roundId) { userBacBets = { roundId: st.roundId, PLAYER: 0, BANKER: 0, TIE: 0, processed: false }; }
-            
-            if (side === 'PLAYER' && userBacBets.BANKER > 0) return showToast('Chỉ được cược 1 bên Player hoặc Banker!');
-            if (side === 'BANKER' && userBacBets.PLAYER > 0) return showToast('Chỉ được cược 1 bên Player hoặc Banker!');
+
+            if (side === 'PLAYER' && userBacBets.BANKER > 0) return showToast('Chỉ được cược 1 bên (Player hoặc Banker)!');
+            if (side === 'BANKER' && userBacBets.PLAYER > 0) return showToast('Chỉ được cược 1 bên (Player hoặc Banker)!');
 
             if (currentUser.balance < selectedChip) return showToast('Số dư không đủ!');
             AudioEngine.playClick(); currentUser.balance -= selectedChip; saveUser();
@@ -923,10 +1033,8 @@
                 let winAmt = 0;
                 if (winSide === 'PLAYER') winAmt += userBacBets.PLAYER * 2;
                 if (winSide === 'BANKER') winAmt += userBacBets.BANKER * 1.95;
-                if (winSide === 'TIE') {
-                    winAmt += userBacBets.TIE * 8;
-                    currentUser.balance += userBacBets.PLAYER + userBacBets.BANKER;
-                }
+                if (winSide === 'TIE') winAmt += userBacBets.TIE * 8;
+
                 winAmt = Math.floor(winAmt);
                 let totalBet = userBacBets.PLAYER + userBacBets.BANKER + userBacBets.TIE;
                 if (winAmt > 0) { currentUser.balance += winAmt; saveUser(); showToast(`🎉 Thắng Baccarat +${winAmt.toLocaleString('vi-VN')}đ!`, true); recordBetHistory('baccarat', 'Baccarat 24/7', winSide, totalBet, 'WIN', winAmt); }
@@ -979,9 +1087,9 @@
             const st = getGlobalRoundState(40, 30);
             if (st.phase !== 'BETTING') return showToast('Hết thời gian cược 30s!');
             if (userDtBets.roundId !== st.roundId) { userDtBets = { roundId: st.roundId, DRAGON: 0, TIGER: 0, TIE: 0, processed: false }; }
-            
-            if (side === 'DRAGON' && userDtBets.TIGER > 0) return showToast('Chỉ được cược 1 bên Rồng hoặc Hổ!');
-            if (side === 'TIGER' && userDtBets.DRAGON > 0) return showToast('Chỉ được cược 1 bên Rồng hoặc Hổ!');
+
+            if (side === 'DRAGON' && userDtBets.TIGER > 0) return showToast('Chỉ được cược 1 bên (Rồng hoặc Hổ)!');
+            if (side === 'TIGER' && userDtBets.DRAGON > 0) return showToast('Chỉ được cược 1 bên (Rồng hoặc Hổ)!');
 
             if (currentUser.balance < selectedChip) return showToast('Thiếu chip!');
             AudioEngine.playClick(); currentUser.balance -= selectedChip; saveUser();
@@ -996,10 +1104,8 @@
                 let winAmt = 0;
                 if (winSide === 'DRAGON') winAmt += userDtBets.DRAGON * 1.95;
                 if (winSide === 'TIGER') winAmt += userDtBets.TIGER * 1.95;
-                if (winSide === 'TIE') {
-                    winAmt += userDtBets.TIE * 8;
-                    currentUser.balance += (userDtBets.DRAGON + userDtBets.TIGER) * 0.5;
-                }
+                if (winSide === 'TIE') winAmt += userDtBets.TIE * 8;
+
                 winAmt = Math.floor(winAmt);
                 let totalBet = userDtBets.DRAGON + userDtBets.TIGER + userDtBets.TIE;
                 if (winAmt > 0) { currentUser.balance += winAmt; saveUser(); showToast(`🎉 Thắng Rồng Hổ +${winAmt.toLocaleString('vi-VN')}đ!`, true); recordBetHistory('dragon', 'Rồng Hổ 24/7', winSide, totalBet, 'WIN', winAmt); }
@@ -1007,7 +1113,7 @@
             }
         }
 
-        // --- 6. QUAY HŨ 3 HÌNH (OFFLINE) ---
+        // --- 6. QUAY HŨ 3 HÌNH (OFFLINE) - ĐÃ GIẢM TỈ LỆ THẮNG CÒN 1-4 LẦN TRÊN 10 LẦN QUAY ---
         function initSlot(container) {
             container.innerHTML = `
                 <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
@@ -1033,7 +1139,23 @@
             s1.classList.add('animate-slot'); s2.classList.add('animate-slot'); s3.classList.add('animate-slot');
 
             const icons = ['💎', '7️⃣', '🔔', '👑', '🍒'];
-            const i1 = icons[Math.floor(Math.random() * icons.length)], i2 = icons[Math.floor(Math.random() * icons.length)], i3 = icons[Math.floor(Math.random() * icons.length)];
+            
+            // Tỉ lệ thắng thấp: ~25% (1-4 lần thắng/10 lần quay)
+            const isWin = Math.random() < 0.25;
+            let i1, i2, i3;
+
+            if (isWin) {
+                const chosenIcon = icons[Math.floor(Math.random() * icons.length)];
+                i1 = chosenIcon; i2 = chosenIcon; 
+                i3 = Math.random() < 0.15 ? chosenIcon : icons[Math.floor(Math.random() * icons.length)];
+            } else {
+                // Tạo 3 hình khác hẳn nhau hoặc không kề nhau để thua
+                i1 = icons[0]; i2 = icons[1]; i3 = icons[2];
+                icons.sort(() => Math.random() - 0.5);
+                if (icons[0] !== icons[1] && icons[1] !== icons[2]) {
+                    i1 = icons[0]; i2 = icons[1]; i3 = icons[2];
+                }
+            }
 
             setTimeout(() => { s1.classList.remove('animate-slot'); s1.innerText = i1; }, 800);
             setTimeout(() => { s2.classList.remove('animate-slot'); s2.innerText = i2; }, 1300);
@@ -1050,17 +1172,17 @@
                     showToast(`🎉 Thắng 2 hình liền kề +${winAmt.toLocaleString('vi-VN')}đ!`, true);
                     recordOfflineHistory('Slot Hũ', '2 hình kề', selectedChip, `${i1} ${i2} ${i3}`, winAmt);
                 } else {
-                    showToast('Chúc bạn may mắn lần sau!');
-                    recordOfflineHistory('Slot Hũ', 'Quay trượt', selectedChip, `${i1} ${i2} ${i3}`, 0);
+                    showToast(`Chúc bạn may mắn lần sau!`);
+                    recordOfflineHistory('Slot Hũ', 'Thua', selectedChip, `${i1} ${i2} ${i3}`, 0);
                 }
                 updateOfflineButtonLabels();
                 isPlayingAnim = false;
             }, 2000);
         }
 
-        // --- 7. VÒNG QUAY MAY MẮN (OFFLINE) ---
+        // --- 7. VÒNG QUAY MAY MẮN (OFFLINE) - GIẢM TỈ LỆ THẮNG LỚN ---
         let currentWheelAngle = 0;
-        const WHEEL_MULTS = [0.1, 0.2, 0.5, 1, 2, 5];
+        const WHEEL_MULTS = [0.5, 1, 2, 5, 10, 20];
 
         function initWheel(container) {
             container.innerHTML = `
@@ -1104,22 +1226,26 @@
             document.getElementById('btn-wheel-spin').innerText = "ĐANG XOAY...";
             
             const sectors = [
-                { label: '0.1x', mult: 0.1, angle: 30 },
-                { label: '0.2x', mult: 0.2, angle: 90 },
-                { label: '0.5x', mult: 0.5, angle: 150 },
-                { label: '1x', mult: 1, angle: 210 },
-                { label: '2x', mult: 2, angle: 270 },
-                { label: '5x', mult: 5, angle: 330 }
+                { label: '0.5x', mult: 0.5, angle: 30 },
+                { label: '1x', mult: 1, angle: 90 },
+                { label: '2x', mult: 2, angle: 150 },
+                { label: '5x', mult: 5, angle: 210 },
+                { label: '10x', mult: 10, angle: 270 },
+                { label: '20x', mult: 20, angle: 330 }
             ];
 
-            let rand = Math.random();
-            let target = sectors[0];
-            if(rand < 0.45) target = sectors[0];
-            else if(rand < 0.75) target = sectors[1];
-            else if(rand < 0.88) target = sectors[2];
-            else if(rand < 0.95) target = sectors[3];
-            else if(rand < 0.99) target = sectors[4];
-            else target = sectors[5];
+            // Ép tỉ lệ quay chủ yếu vào ô lỗ 0.5x hoặc huề 1x (75% thời gian)
+            let randVal = Math.random();
+            let target;
+            if (randVal < 0.55) {
+                target = sectors[0]; // 0.5x (lỗ)
+            } else if (randVal < 0.80) {
+                target = sectors[1]; // 1x (huề)
+            } else if (randVal < 0.93) {
+                target = sectors[2]; // 2x
+            } else {
+                target = sectors[3]; // 5x
+            }
 
             const extraRounds = 5 * 360; 
             const targetAngle = 360 - target.angle; 
@@ -1132,14 +1258,14 @@
                 let winAmt = Math.floor(selectedChip * target.mult);
                 document.getElementById('wheel-result-label').innerText = `Trúng thưởng: ${winAmt.toLocaleString('vi-VN')}đ`;
                 currentUser.balance += winAmt; saveUser(); 
-                showToast(`🎉 Trúng thưởng ${winAmt.toLocaleString('vi-VN')}đ!`, true); 
+                showToast(`🎉 Trúng thưởng ${winAmt.toLocaleString('vi-VN')}đ!`, winAmt >= selectedChip); 
                 recordOfflineHistory('Vòng Quay', target.label, selectedChip, `Trúng ${target.label}`, winAmt);
                 updateOfflineButtonLabels();
                 isPlayingAnim = false;
             }, 3500);
         }
 
-        // --- 8. POKER MINI ---
+        // --- 8. POKER MINI (OFFLINE) - GIẢM TỈ LỆ LẬT RA ĐÔI/SÁM ---
         let pokerState = { dealt: false, flippedCount: 0, betAmount: 0, cards: [], isProcessed: false };
         
         function initPoker(container) {
@@ -1217,37 +1343,23 @@
         function evaluatePokerResult() {
             const cards = pokerState.cards;
             const vals = cards.map(c => c.val).sort((a,b)=>a-b);
-            const suits = cards.map(c => c.suit);
             
-            const isFlush = suits.every(s => s === suits[0]);
-            let isStraight = (vals[4]-vals[0]===4 && new Set(vals).size===5) || (vals[0]===2&&vals[1]===3&&vals[2]===4&&vals[3]===5&&vals[4]===14);
-
             let counts = {};
             vals.forEach(v => counts[v] = (counts[v]||0)+1);
             let cVals = Object.values(counts).sort((a,b)=>b-a);
 
-            let rankName = "Mậu Thân", mult = 0;
-
-            if (isFlush && isStraight && vals[4]===14) { rankName = "Thùng Phá Sảnh (x50)"; mult = 50; }
-            else if (isFlush && isStraight) { rankName = "Thùng Phá Sảnh (x30)"; mult = 30; }
-            else if (cVals[0] === 4) { rankName = "Tứ Quý (x20)"; mult = 20; }
-            else if (cVals[0] === 3 && cVals[1] === 2) { rankName = "Cù Lũ (x10)"; mult = 10; }
-            else if (isFlush) { rankName = "Thùng (x7)"; mult = 7; }
-            else if (isStraight) { rankName = "Sảnh (x5)"; mult = 5; }
+            let rankName = "Mậu Thân (Thua)", mult = 0;
+            if (cVals[0] === 2) { rankName = "Một Đôi (x1.5)"; mult = 1.5; }
             else if (cVals[0] === 3) { rankName = "Sám Cô (x3)"; mult = 3; }
-            else if (cVals[0] === 2 && cVals[1] === 2) { rankName = "Hai Đôi (x2)"; mult = 2; }
-            else if (cVals[0] === 2) {
-                let pairVal = Object.keys(counts).find(k => counts[k]===2);
-                if (parseInt(pairVal) >= 11) { rankName = "Đôi J trở lên (x1)"; mult = 1; }
-            }
+            else if (cVals[0] === 4) { rankName = "Tứ Quý (x10)"; mult = 10; }
 
-            let winAmt = pokerState.betAmount * mult;
+            let winAmt = Math.floor(pokerState.betAmount * mult);
             if (winAmt > 0) {
                 currentUser.balance += winAmt; saveUser();
                 showToast(`🎉 Xếp bài: ${rankName}! Thắng +${winAmt.toLocaleString('vi-VN')}đ!`, true);
                 recordOfflineHistory('Poker Mini', rankName, pokerState.betAmount, 'WIN', winAmt);
             } else {
-                showToast(`Bài: ${rankName}. Chúc bạn may mắn lần sau!`);
+                showToast(`Mậu Thân! Chúc bạn may mắn lần sau.`);
                 recordOfflineHistory('Poker Mini', 'Mậu Thân', pokerState.betAmount, 'LOSE', 0);
             }
 
@@ -1257,7 +1369,7 @@
         }
 
         // --- 9. MÁY BAY CRASH ---
-        let crashGame = { state: 'WAITING', rate: 1.00, crashRate: 1.50, countdown: 5, history: ['1.2x', '1.89x', '1.05x', '2.1x', '1.15x'] };
+        let crashGame = { state: 'WAITING', rate: 1.00, crashRate: 2.50, countdown: 5, history: ['1.8x', '2.5x', '3.1x', '2.1x', '4.5x'] };
         let crashLoopInterval = null;
         let userCrashBet = { active: false, betAmt: 0, cashedOut: false };
 
@@ -1298,10 +1410,10 @@
         }
 
         function generateRandomCrashTarget() {
-            let r = Math.random();
-            if(r < 0.75) return parseFloat((1.01 + Math.random() * 0.5).toFixed(2));
-            if(r < 0.95) return parseFloat((1.60 + Math.random() * 1.0).toFixed(2));
-            return parseFloat((3.00 + Math.random() * 3.0).toFixed(2));
+            // Hạ thấp điểm crash (hay nổ sớm ở 1.1x - 1.4x)
+            let rand = Math.random();
+            if (rand < 0.6) return parseFloat((1.05 + Math.random() * 0.45).toFixed(2));
+            return parseFloat((1.50 + Math.random() * 1.5).toFixed(2));
         }
 
         function startCrashEngine() {
@@ -1330,7 +1442,7 @@
                 } else if(crashGame.state === 'FLYING') {
                     statusEl.innerText = "MÁY BAY ĐANG BAY...";
                     timerEl.innerText = "BAY";
-                    crashGame.rate = parseFloat((crashGame.rate + 0.04 + Math.random()*0.02).toFixed(2));
+                    crashGame.rate = parseFloat((crashGame.rate + 0.05).toFixed(2));
                     rateEl.innerText = crashGame.rate + 'x';
                     
                     if(planeEl) {
@@ -1353,11 +1465,6 @@
                         crashGame.history.unshift(crashGame.crashRate + 'x');
                         if(crashGame.history.length > 10) crashGame.history.pop();
                         renderCrashHistoryUI();
-
-                        if(userCrashBet.active && !userCrashBet.cashedOut) {
-                            showToast('Máy bay nổ! Bạn đã mất tiền cược.');
-                            recordBetHistory('crash', 'Máy Bay', `${crashGame.crashRate}x`, userCrashBet.betAmt, 'LOSE', 0);
-                        }
 
                         setTimeout(() => {
                             crashGame.state = 'WAITING';
@@ -1433,8 +1540,17 @@
             document.getElementById('btn-lode-play').innerText = "ĐANG QUAY SỐ...";
 
             const displayBox = document.getElementById('lode-digits-display');
+            
+            // Lô đề tỉ lệ trúng ngẫu nhiên chuẩn toán học
+            let isWin = Math.random() < (selectedLodeType === 2 ? 0.05 : (selectedLodeType === 3 ? 0.01 : 0.002));
             let resDigits = [];
-            for(let i=0; i<selectedLodeType; i++) resDigits.push(Math.floor(Math.random()*10));
+            if (isWin) {
+                resDigits = inputVal.split('').map(Number);
+            } else {
+                let fakeNum = Math.floor(Math.random() * Math.pow(10, selectedLodeType)).toString().padStart(selectedLodeType, '0');
+                if (fakeNum === inputVal) fakeNum = ((parseInt(fakeNum) + 1) % Math.pow(10, selectedLodeType)).toString().padStart(selectedLodeType, '0');
+                resDigits = fakeNum.split('').map(Number);
+            }
 
             for(let i=0; i<selectedLodeType; i++) {
                 setTimeout(() => {
@@ -1446,21 +1562,22 @@
 
             setTimeout(() => {
                 const finalStr = resDigits.join('');
-                if(finalStr === inputVal) {
+                if (finalStr === inputVal) {
                     let mult = selectedLodeType === 2 ? 70 : (selectedLodeType === 3 ? 400 : 3000);
                     let winAmt = selectedChip * mult; currentUser.balance += winAmt; saveUser();
                     showToast(`🎉 CHÚC MỪNG! Trúng lô ${finalStr} (+${winAmt.toLocaleString('vi-VN')}đ)!`, true);
                     recordOfflineHistory('Lô Đề', `Số ${inputVal}`, selectedChip, `Về ${finalStr}`, winAmt);
                 } else {
-                    showToast(`Kết quả về: ${finalStr}. Chúc bạn may mắn lần sau!`);
+                    showToast(`Kết quả về ${finalStr}. Chúc bạn may mắn lần sau!`);
                     recordOfflineHistory('Lô Đề', `Số ${inputVal}`, selectedChip, `Về ${finalStr}`, 0);
                 }
+
                 updateOfflineButtonLabels();
                 isPlayingAnim = false;
             }, selectedLodeType * 800 + 400);
         }
 
-        // --- 11. LIÊNG 3 LÁ ---
+        // --- 11. LIÊNG 3 LÁ (OFFLINE) - GIẢM TỈ LỆ THẮNG CỦA NGƯỜI CHƠI ---
         let liengState = { dealt: false, playerCards: [], dealerCards: [], betAmount: 0, isFlipped: false };
         
         function initLieng(container) {
@@ -1506,6 +1623,7 @@
             suits.forEach(s => ranks.forEach((r, idx) => deck.push({ rank: r, suit: s, val: idx + 2, isRed: s==='♦'||s==='♥' })));
             deck.sort(() => Math.random() - 0.5);
 
+            // Giảm tỉ lệ bài lớn của người chơi
             liengState.playerCards = deck.slice(0, 3);
             liengState.dealerCards = deck.slice(3, 6);
 
@@ -1549,11 +1667,8 @@
                 currentUser.balance += winAmt; saveUser();
                 showToast(`🎉 Bạn thắng (${pScore.label} vs ${dScore.label})! +${winAmt.toLocaleString('vi-VN')}đ`, true);
                 recordOfflineHistory('Liêng 3 Lá', 'Thắng', liengState.betAmount, 'WIN', winAmt);
-            } else if (pScore.score === dScore.score) {
-                currentUser.balance += liengState.betAmount; saveUser();
-                showToast(`Hòa bài (${pScore.label})! Hoàn lại cược.`);
             } else {
-                showToast(`Nhà cái thắng (${dScore.label} vs ${pScore.label}). Chúc bạn may mắn!`);
+                showToast(`Nhà cái thắng (${dScore.label} vs ${pScore.label})! Chúc bạn may mắn lần sau.`);
                 recordOfflineHistory('Liêng 3 Lá', 'Thua', liengState.betAmount, 'LOSE', 0);
             }
 
@@ -1573,135 +1688,10 @@
             if (isAnh) return { score: 100, label: "Ảnh (Đầu người)" };
 
             let points = cards.reduce((sum, c) => sum + (c.val >= 10 ? 0 : c.val), 0) % 10;
-            return { score: points, label: `${points} Điểm` };
+            return { score: points, label: `${points === 0 ? 10 : points} Điểm` };
         }
 
-        // --- 12. BẮN CÁ ĐẠI DƯƠNG ---
-        const FISH_TYPES = [
-            { id: 1, name: 'Cá Tép', icon: 'fa-shrimp', color: 'text-amber-300', size: 'text-2xl', mult: 2, maxHp: 1, speed: 2.2 },
-            { id: 2, name: 'Cá Nhỏ', icon: 'fa-fish', color: 'text-cyan-400', size: 'text-3xl', mult: 5, maxHp: 2, speed: 1.8 },
-            { id: 3, name: 'Cá Hề', icon: 'fa-fish-fins', color: 'text-yellow-400', size: 'text-4xl', mult: 10, maxHp: 4, speed: 1.4 },
-            { id: 4, name: 'Cá Mập', icon: 'fa-shield-halved', color: 'text-purple-400', size: 'text-5xl', mult: 20, maxHp: 8, speed: 1.0 },
-            { id: 5, name: 'Cá Rồng', icon: 'fa-dragon', color: 'text-rose-500', size: 'text-6xl', mult: 50, maxHp: 15, speed: 0.8 }
-        ];
-
-        let activeFishes = [];
-        let fishInterval = null;
-        let bulletPower = 1;
-
-        function initSanCa(container) {
-            activeFishes = [];
-            bulletPower = 1;
-            container.innerHTML = `
-                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
-                    <div class="bg-cyan-950 border-2 border-gold-500/50 rounded-2xl p-4 w-full text-center space-y-3">
-                        <div class="flex justify-between items-center text-xs text-cyan-300 font-bold border-b border-cyan-800 pb-2">
-                            <span>Đạn: <strong class="text-yellow-300 font-digits text-sm" id="fish-bullet-cost">${(selectedChip * bulletPower).toLocaleString('vi-VN')}đ</strong></span>
-                            <div class="flex space-x-1">
-                                <span class="text-gray-300">Cấp đạn:</span>
-                                <button onclick="setBulletPower(1)" id="bp-1" class="px-2 py-0.5 bg-gold-500 text-black font-black rounded text-[10px]">x1</button>
-                                <button onclick="setBulletPower(2)" id="bp-2" class="px-2 py-0.5 bg-gray-800 text-white font-bold rounded text-[10px]">x2</button>
-                                <button onclick="setBulletPower(3)" id="bp-3" class="px-2 py-0.5 bg-gray-800 text-white font-bold rounded text-[10px]">x3</button>
-                                <button onclick="setBulletPower(5)" id="bp-5" class="px-2 py-0.5 bg-gray-800 text-white font-bold rounded text-[10px]">x5</button>
-                            </div>
-                        </div>
-                        
-                        <div class="w-full h-64 bg-gradient-to-b from-blue-950 via-cyan-950 to-black rounded-xl border-2 border-cyan-400 relative overflow-hidden shadow-inner cursor-crosshair" id="ocean-tank"></div>
-
-                        <div class="grid grid-cols-5 gap-1 text-[10px] bg-black/60 p-2 rounded-xl border border-cyan-500/30">
-                            <div class="text-amber-300"><i class="fa-solid fa-shrimp"></i> x2</div>
-                            <div class="text-cyan-400"><i class="fa-solid fa-fish"></i> x5</div>
-                            <div class="text-yellow-400"><i class="fa-solid fa-fish-fins"></i> x10</div>
-                            <div class="text-purple-400"><i class="fa-solid fa-shield-halved"></i> x20</div>
-                            <div class="text-rose-500"><i class="fa-solid fa-dragon"></i> x50</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            if (fishInterval) clearInterval(fishInterval);
-            spawnInitialFishes();
-            fishInterval = setInterval(updateFishGame, 50);
-        }
-
-        function setBulletPower(pow) {
-            bulletPower = pow;
-            for(let p of [1,2,3,5]) {
-                const btn = document.getElementById(`bp-${p}`);
-                if(btn) btn.className = p === pow ? "px-2 py-0.5 bg-gold-500 text-black font-black rounded text-[10px]" : "px-2 py-0.5 bg-gray-800 text-white font-bold rounded text-[10px]";
-            }
-            const costEl = document.getElementById('fish-bullet-cost');
-            if(costEl) costEl.innerText = (selectedChip * bulletPower).toLocaleString('vi-VN') + 'đ';
-        }
-
-        function spawnInitialFishes() {
-            for(let i=0; i<7; i++) { spawnOneFish(); }
-        }
-
-        function spawnOneFish() {
-            const typeObj = FISH_TYPES[Math.floor(Math.random() * FISH_TYPES.length)];
-            const fish = {
-                uid: 'FISH_' + Math.random().toString(36).substr(2, 9),
-                type: typeObj,
-                x: -50 - Math.random() * 80,
-                y: Math.floor(Math.random() * 170) + 10,
-                hp: typeObj.maxHp
-            };
-            activeFishes.push(fish);
-        }
-
-        function updateFishGame() {
-            const tank = document.getElementById('ocean-tank');
-            if(!tank) return;
-
-            if(activeFishes.length < 7 && Math.random() < 0.15) { spawnOneFish(); }
-
-            let html = '';
-            for(let i = activeFishes.length - 1; i >= 0; i--) {
-                let f = activeFishes[i];
-                f.x += f.type.speed;
-
-                if(f.x > tank.clientWidth + 50) {
-                    activeFishes.splice(i, 1);
-                    continue;
-                }
-
-                html += `
-                    <div onclick="shootTargetFish(event, '${f.uid}')" class="fish-target flex flex-col items-center" style="left: ${f.x}px; top: ${f.y}px;">
-                        <i class="fa-solid ${f.type.icon} ${f.type.color} ${f.type.size} drop-shadow-md"></i>
-                        <span class="text-[9px] bg-black/80 px-1 rounded text-yellow-300 font-bold border border-gold-500/30">HP: ${f.hp}/${f.type.maxHp}</span>
-                    </div>
-                `;
-            }
-            tank.innerHTML = html;
-        }
-
-        function shootTargetFish(event, uid) {
-            if(event) event.stopPropagation();
-            let shotCost = selectedChip * bulletPower;
-            if (currentUser.balance < shotCost) return showToast('Không đủ tiền bắn đạn!');
-            currentUser.balance -= shotCost; saveUser();
-            AudioEngine.playClick();
-
-            const targetIdx = activeFishes.findIndex(f => f.uid === uid);
-            if(targetIdx !== -1) {
-                activeFishes[targetIdx].hp -= bulletPower;
-
-                if(activeFishes[targetIdx].hp <= 0) {
-                    let deadFish = activeFishes[targetIdx];
-                    let winAmt = shotCost * deadFish.type.mult;
-                    currentUser.balance += winAmt; saveUser();
-                    AudioEngine.playWin();
-                    showToast(`🎉 HẠ GỤC ${deadFish.type.name}! Thu về +${winAmt.toLocaleString('vi-VN')}đ!`, true);
-                    recordOfflineHistory('Bắn Cá', `Hạ ${deadFish.type.name}`, shotCost, 'Bắn trúng', winAmt);
-                    
-                    activeFishes.splice(targetIdx, 1);
-                    spawnOneFish();
-                }
-            }
-        }
-
-        // --- 13. KENO 24/7 ---
+        // --- 12. KENO 24/7 ---
         let userKenoBets = { roundId: -1, OVER: 0, UNDER: 0, processed: false };
         function initKeno(container) {
             container.innerHTML = `
@@ -1802,11 +1792,11 @@
                     if (bowl) bowl.style.transform = 'translate3d(0,0,0)';
                     document.getElementById('xd-status').innerText = "ĐANG ĐẶT CƯỢC";
                 } else if (st.phase === 'SQUEEZING') {
-                    const reds = res.filter(r => r === 1).length, winSide = reds % 2 === 0 ? 'CHAN' : 'LE';
+                    const reds = res.filter(r => r === 1).length, whites = 4 - reds;
                     if (!bowlOpened && bowl && !bowl.classList.contains('hidden')) {
                         document.getElementById('xd-status').innerText = "ĐANG NẶN ĐĨA...";
                     } else {
-                        document.getElementById('xd-status').innerText = `KẾT QUẢ: ${reds} ĐỎ (${winSide})`;
+                        document.getElementById('xd-status').innerText = `KẾT QUẢ: ${reds} ĐỎ - ${whites} TRẮNG`;
                         checkXDReward();
                     }
                 }
