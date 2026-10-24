@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>duc - Cổng Game Giải Trí VIP 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK (Compat Version để chạy mượt mà trên file HTML tĩnh) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gold: { 300: '#fde047', 400: '#facc15', 500: '#eab308', 600: '#ca8a04', 700: '#a16207' },
+                        casino: { dark: '#080112', card: 'rgba(23, 10, 38, 0.95)', accent: '#2a0e4a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Teko:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto Condensed', sans-serif; background: #05010a; color: #ffffff; user-select: none; touch-action: manipulation; overflow-x: hidden; }
+        .casino-bg { position: fixed; inset: 0; z-index: -1; background: radial-gradient(circle at 50% 20%, #2e0854 0%, #0d021e 60%, #030008 100%); }
+        .font-digits { font-family: 'Teko', sans-serif; }
+        .gold-gradient-text { background: linear-gradient(180deg, #ffffff 0%, #fde047 30%, #eab308 70%, #92400e 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .red-gold-gradient { background: linear-gradient(135deg, #991b1b 0%, #4c0519 50%, #18020c 100%); }
+        .gold-btn { background: linear-gradient(180deg, #fef08a 0%, #facc15 30%, #ca8a04 80%, #854d0e 100%); color: #000; font-weight: 800; box-shadow: 0 4px 15px rgba(202, 138, 4, 0.5); transition: all 0.2s ease; }
+        
+        .horizontal-menu-container { display: flex; overflow-x: auto; scroll-behavior: smooth; gap: 1rem; padding: 0.5rem 0.25rem; }
+        .horizontal-menu-container::-webkit-scrollbar { height: 6px; }
+        .horizontal-menu-container::-webkit-scrollbar-thumb { background: #eab308; border-radius: 10px; }
+        .game-card-snap { flex: 0 0 calc(45% - 0.5rem); min-width: 140px; max-width: 180px; }
+        @media (min-width: 640px) { .game-card-snap { flex: 0 0 calc(28% - 0.5rem); min-width: 160px; } }
+        @media (min-width: 1024px) { .game-card-snap { flex: 0 0 calc(18% - 0.5rem); min-width: 170px; } }
+
+        .game-card { background: linear-gradient(145deg, rgba(30, 12, 53, 0.9), rgba(12, 3, 24, 0.95)); border: 1px solid rgba(234, 179, 8, 0.3); backdrop-filter: blur(10px); transition: all 0.3s; }
+        .game-card:hover { transform: translateY(-6px); border-color: rgba(250, 204, 21, 0.9); }
+
+        .bowl-touch-area { touch-action: none; z-index: 30; transition: transform 0.05s ease-out; }
+        
+        .dice-face { background: #ffffff; border-radius: 6px; display: grid; width: 32px; height: 32px; padding: 3px; position: relative; }
+        .dot { width: 5px; height: 5px; background-color: #dc2626; border-radius: 50%; }
+        .dice-1 { grid-template: 1fr / 1fr; justify-items: center; align-items: center; } .dice-1 .dot { width: 7px; height: 7px; }
+        .dice-2 { grid-template: repeat(2, 1fr) / repeat(2, 1fr); justify-items: space-between; align-items: center; } .dice-2 .dot:nth-child(2) { justify-self: end; align-self: end; }
+        .dice-3 { grid-template: repeat(3, 1fr) / repeat(3, 1fr); justify-items: center; align-items: center; } .dice-3 .dot:nth-child(1) { grid-area: 1 / 1; } .dice-3 .dot:nth-child(2) { grid-area: 2 / 2; } .dice-3 .dot:nth-child(3) { grid-area: 3 / 3; }
+        .dice-4 { grid-template: repeat(2, 1fr) / repeat(2, 1fr); justify-items: space-between; align-items: center; }
+        .dice-5 { grid-template: repeat(3, 1fr) / repeat(3, 1fr); justify-items: center; align-items: center; } .dice-5 .dot:nth-child(1) { grid-area: 1 / 1; } .dice-5 .dot:nth-child(2) { grid-area: 1 / 3; } .dice-5 .dot:nth-child(3) { grid-area: 2 / 2; } .dice-5 .dot:nth-child(4) { grid-area: 3 / 1; } .dice-5 .dot:nth-child(5) { grid-area: 3 / 3; }
+        .dice-6 { grid-template: repeat(3, 1fr) / repeat(2, 1fr); justify-items: center; align-items: center; }
+
+        .playing-card-container { perspective: 1000px; width: 52px; height: 74px; display: inline-block; cursor: pointer; transition: all 0.3s ease; }
+        .playing-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; }
+        .playing-card-container.flipped .playing-card-inner { transform: rotateY(180deg); }
+        .card-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; padding: 4px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .card-front { background: #fff; color: #111; transform: rotateY(180deg); border: 1px solid #ccc; }
+        .card-front.red { color: #dc2626; }
+        .card-back { background: linear-gradient(135deg, #1e3a8a, #0f172a); border: 2px solid #facc15; }
+
+        .wheel-container { position: relative; width: 260px; height: 260px; margin: 0 auto; }
+        .wheel-disc {
+            width: 100%; height: 100%; border-radius: 50%; border: 6px solid #facc15;
+            box-shadow: 0 0 20px rgba(250, 204, 21, 0.6);
+            background: conic-gradient(
+                #dc2626 0deg 60deg, #2563eb 60deg 120deg, #16a34a 120deg 180deg, 
+                #d97706 180deg 240deg, #9333ea 240deg 300deg, #0891b2 300deg 360deg
+            );
+            transition: transform 3.5s cubic-bezier(0.15, 0.85, 0.35, 1);
+        }
+        .wheel-pointer {
+            position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 24px solid #ff0000;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); z-index: 20;
+        }
+
+        @keyframes slotSpin { 0% { transform: translateY(0); } 50% { transform: translateY(-20px); } 100% { transform: translateY(0); } }
+        .animate-slot { animation: slotSpin 0.15s infinite linear; }
+
+        .fish-target { position: absolute; cursor: pointer; transition: transform 0.1s; user-select: none; }
+        .fish-target:active { transform: scale(0.9); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <div class="casino-bg"></div>
+
+    <div id="toast-banner" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden transition-all duration-300">
+        <div id="toast-box" class="bg-black/90 border-2 border-gold-400 text-yellow-300 px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center space-x-3 text-sm font-bold">
+            <i id="toast-icon" class="fa-solid fa-trophy text-gold-400 text-lg"></i>
+            <span id="toast-text">Thông báo</span>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-gold-500/40 px-3 py-2.5 flex items-center justify-between shadow-2xl">
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="showScreen('lobby')">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-red-600 via-gold-400 to-yellow-200 p-0.5 shadow-lg">
+                <div class="w-full h-full bg-casino-dark rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-crown text-gold-400 text-xl"></i>
+                </div>
+            </div>
+            <div>
+                <h1 class="text-3xl font-black tracking-wider gold-gradient-text uppercase leading-none">duc</h1>
+                <p class="text-[10px] text-yellow-300/90 tracking-widest uppercase font-bold">Cổng Game Giải Trí VIP</p>
+            </div>
+        </div>
+
+        <div id="nav-user-panel" class="flex items-center space-x-2">
+            <div id="auth-btns" class="flex space-x-2">
+                <button onclick="openAuthModal('login')" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-red-800 to-rose-950 border border-red-500/60 text-xs font-bold text-white">ĐĂNG NHẬP</button>
+                <button onclick="openAuthModal('register')" class="gold-btn px-3.5 py-1.5 rounded-xl text-xs">ĐĂNG KÝ</button>
+            </div>
+            <div id="user-info" class="hidden flex items-center space-x-2 sm:space-x-3">
+                <div class="flex flex-col items-end">
+                    <span id="user-display-name" class="text-xs font-bold text-yellow-300 truncate max-w-[100px]">Player</span>
+                    <div class="flex items-center space-x-1 bg-black/80 px-2 py-0.5 rounded-full border border-gold-500/50">
+                        <i class="fa-solid fa-coins text-gold-400 text-xs"></i>
+                        <span id="user-balance" class="text-xs font-bold text-emerald-400 font-digits tracking-wider">0</span>
+                        <span class="text-[10px] text-gold-400">đ</span>
+                    </div>
+                </div>
+                <button onclick="openDepositModal()" class="w-8 h-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs flex items-center justify-center" title="Nạp chip"><i class="fa-solid fa-plus"></i></button>
+                <button onclick="openWithdrawModal()" class="w-8 h-8 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs flex items-center justify-center" title="Rút tiền"><i class="fa-solid fa-building-columns"></i></button>
+                <button onclick="logout()" class="w-8 h-8 rounded-xl bg-gray-900 text-gray-300 flex items-center justify-center text-xs border border-gray-700" title="Đăng xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <div class="bg-black/90 border-b border-gold-500/30 px-4 py-1.5 flex items-center space-x-2 text-xs text-yellow-300">
+        <i class="fa-solid fa-gamepad text-gold-400 animate-bounce"></i>
+        <marquee class="font-bold tracking-wide">game giải trí vui vẻ không ăn tiền thật (Đồng bộ Cloud Realtime)</marquee>
+    </div>
+
+    <main class="flex-grow container mx-auto p-3 sm:p-5 max-w-6xl">
+        <div id="screen-lobby" class="space-y-6">
+            <div class="relative rounded-3xl overflow-hidden p-6 sm:p-8 border-2 border-gold-500/50 red-gold-gradient shadow-2xl flex flex-col justify-center">
+                <div class="relative z-10 space-y-2">
+                    <h2 class="text-3xl sm:text-5xl font-black gold-gradient-text">DUC PORTAL</h2>
+                    <p class="text-xs sm:text-sm text-gray-200 max-w-2xl font-medium">Hệ thống game giải trí 24/7 tự động (30s đặt cược + 10s nặn/mở phiên mới).</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="flex items-center justify-between border-b border-gold-500/40 pb-3">
+                    <h3 class="text-xl font-bold text-yellow-400 flex items-center space-x-2">
+                        <i class="fa-solid fa-fire-flame-curved text-rose-500 animate-pulse"></i>
+                        <span>DANH SÁCH GAME GIẢI TRÍ</span>
+                    </h3>
+                </div>
+                <div id="game-grid-container" class="horizontal-menu-container"></div>
+            </div>
+        </div>
+
+        <div id="screen-game" class="hidden space-y-4">
+            <div class="flex items-center justify-between border-b border-gold-500/40 pb-3 bg-black/40 p-3 rounded-2xl border border-gold-500/20">
+                <button onclick="showScreen('lobby')" class="px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-800 border border-gold-500/40 text-xs text-gold-400 font-bold flex items-center space-x-2 shadow-md">
+                    <i class="fa-solid fa-arrow-left"></i><span>SẢNH CHÍNH</span>
+                </button>
+                <h3 id="current-game-title" class="text-2xl font-black gold-gradient-text uppercase tracking-wider">GAME TITLE</h3>
+                <div class="text-xs text-gray-400 font-digits font-bold" id="round-id-display">Phiên: #--</div>
+            </div>
+
+            <!-- CHIP SELECTOR -->
+            <div id="global-bet-bar" class="bg-casino-card p-3 rounded-2xl border border-gold-500/40 flex flex-wrap items-center justify-between gap-3 shadow-xl">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-bold text-yellow-300">CHỌN MỨC CƯỢC:</span>
+                    <div class="flex items-center space-x-1 overflow-x-auto">
+                        <button onclick="selectChip(10000)" class="bg-yellow-600 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg">10K</button>
+                        <button onclick="selectChip(50000)" class="bg-blue-600 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg">50K</button>
+                        <button onclick="selectChip(200000)" class="bg-purple-600 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg">200K</button>
+                        <button onclick="selectChip(1000000)" class="bg-red-600 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg">1M</button>
+                        <button onclick="selectChip(10000000)" class="bg-amber-500 text-black font-black text-xs px-2.5 py-1.5 rounded-lg">10M</button>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs font-bold text-gray-300">TÙY CHỈNH:</span>
+                    <input type="number" id="custom-chip-input" min="1000" step="1000" value="10000" onchange="setCustomChip(this.value)" class="bg-black/70 border border-gold-500/40 rounded-xl px-3 py-1.5 text-xs text-yellow-300 font-digits w-32 focus:outline-none">
+                </div>
+            </div>
+
+            <div id="game-board-area" class="w-full"></div>
+        </div>
+    </main>
+
+    <footer class="bg-black/90 border-t border-gold-500/30 py-4 text-center text-xs text-gray-400">
+        <p>© 2026 Cổng Game DUC - Đồng bộ Cloud Realtime trực tuyến</p>
+    </footer>
+
+    <!-- MODALS -->
+    <div id="modal-auth" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-casino-card border-2 border-gold-500/60 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative">
+            <button onclick="closeModal('modal-auth')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <div class="text-center mb-6"><h3 id="auth-modal-title" class="text-2xl font-black gold-gradient-text uppercase">ĐĂNG NHẬP DUC</h3></div>
+            <form onsubmit="handleAuth(event)" class="space-y-4">
+                <input type="text" id="auth-username" required placeholder="Nhập tên tài khoản" class="w-full bg-black/70 border border-gold-500/40 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none">
+                <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-black/70 border border-gold-500/40 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none">
+                <button type="submit" id="auth-submit-btn" class="gold-btn w-full py-3 rounded-xl text-sm font-black uppercase">ĐĂNG NHẬP</button>
+            </form>
+            <div class="mt-4 text-center"><button type="button" onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-xs text-gold-400 underline font-bold">Chưa có tài khoản? Đăng ký ngay</button></div>
+        </div>
+    </div>
+
+    <div id="modal-deposit" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-casino-card border-2 border-gold-500/60 w-full max-w-md rounded-3xl p-6 shadow-2xl relative space-y-4">
+            <button onclick="closeModal('modal-deposit')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h3 class="text-2xl font-black text-emerald-400 text-center uppercase">NẠP XU GIẢI TRÍ</h3>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="requestDeposit(100000)" class="py-3 rounded-xl bg-emerald-800/60 hover:bg-emerald-700 text-sm font-bold border border-emerald-400/40">+100,000 Xu</button>
+                <button onclick="requestDeposit(1000000)" class="py-3 rounded-xl bg-emerald-800/60 hover:bg-emerald-700 text-sm font-bold border border-emerald-400/40">+1,000,000 Xu</button>
+                <button onclick="requestDeposit(10000000)" class="py-3 rounded-xl bg-emerald-800/60 hover:bg-emerald-700 text-sm font-bold border border-emerald-400/40">+10,000,000 Xu</button>
+                <button onclick="requestDeposit(50000000)" class="py-3 rounded-xl bg-emerald-800/60 hover:bg-emerald-700 text-sm font-bold border border-emerald-400/40">+50,000,000 Xu</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-withdraw" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-casino-card border-2 border-gold-500/60 w-full max-w-sm rounded-3xl p-6 shadow-2xl relative">
+            <button onclick="closeModal('modal-withdraw')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <h3 class="text-2xl font-black text-rose-400 text-center mb-4 uppercase">RÚT XU THƯỞNG</h3>
+            <form onsubmit="handleWithdraw(event)" class="space-y-3">
+                <input type="text" id="withdraw-bank" required placeholder="Tên Ngân Hàng" class="w-full bg-black/70 border border-gold-500/40 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none">
+                <input type="text" id="withdraw-account" required placeholder="Số Tài Khoản Ngân Hàng" class="w-full bg-black/70 border border-gold-500/40 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none">
+                <input type="number" id="withdraw-amount" min="50000" required placeholder="Số xu muốn rút" class="w-full bg-black/70 border border-gold-500/40 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none">
+                <button type="submit" class="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm uppercase">GỬI YÊU CẦU RÚT</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // === KHỞI TẠO FIREBASE CHO NGƯỜI CHƠI ===
+        const firebaseConfig = {
+            apiKey: "AIzaSyDACn0LR27Fa1_zn1a_Kdo0-Nk6ZyZzOLi",
+            authDomain: "game-81566.firebaseapp.com",
+            databaseURL: "https://game-81566-default-rtdb.firebaseio.com",
+            projectId: "game-81566",
+            storageBucket: "game-81566.appspot.com",
+            messagingSenderId: "341383573483",
+            appId: "1:341383573483:web:c39dd5538ea3e9bdbf3ae"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let globalAccounts = [];
+        let globalControls = {};
+
+        // Lắng nghe dữ liệu tài khoản từ Firebase Realtime Database
+        db.ref('duc_game/accounts').on('value', (snapshot) => {
+            globalAccounts = snapshot.val() || [];
+            if (currentUser) {
+                let found = globalAccounts.find(a => a.username === currentUser.username);
+                if (found) { currentUser = found; updateUserUI(); }
+            }
+        });
+
+        // Lắng nghe cấu hình điều khiển từ Admin Realtime
+        db.ref('duc_game/controls').on('value', (snapshot) => {
+            globalControls = snapshot.val() || {};
+        });
+
+        function saveAccountsToFirebase() {
+            db.ref('duc_game/accounts').set(globalAccounts);
+        }
+
+        const AudioEngine = {
+            ctx: null,
+            init() { try { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); } catch(e){} },
+            playClick() { this.init(); if (!this.ctx) return; try { const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); osc.frequency.setValueAtTime(600, this.ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.05); gain.gain.setValueAtTime(0.3, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(); osc.stop(this.ctx.currentTime + 0.05); } catch(e){} },
+            playWin() { this.init(); if (!this.ctx) return; try { [400, 523.25, 659.25, 783.99].forEach((freq, idx) => { const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain(); osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.08); gain.gain.setValueAtTime(0.3, this.ctx.currentTime + idx * 0.08); gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.08 + 0.2); osc.connect(gain); gain.connect(this.ctx.destination); osc.start(this.ctx.currentTime + idx * 0.08); osc.stop(this.ctx.currentTime + idx * 0.08 + 0.2); }); } catch(e){} }
+        };
+
+        let toastTimeout = null;
+        function showToast(msg, isWin = false) {
+            const banner = document.getElementById('toast-banner'), box = document.getElementById('toast-box'), text = document.getElementById('toast-text'), icon = document.getElementById('toast-icon');
+            text.innerText = msg;
+            if (isWin) {
+                box.className = "bg-emerald-950/95 border-2 border-emerald-400 text-emerald-300 px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center space-x-3 text-sm font-bold animate-bounce";
+                icon.className = "fa-solid fa-trophy text-emerald-400 text-xl";
+            } else {
+                box.className = "bg-black/95 border-2 border-gold-400 text-yellow-300 px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center space-x-3 text-sm font-bold";
+                icon.className = "fa-solid fa-bullhorn text-gold-400 text-xl";
+            }
+            banner.classList.remove('hidden');
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => { banner.classList.add('hidden'); }, 3000);
+        }
+
+        let currentUser = null, currentGame = null, isPlayingAnim = false;
+        let selectedChip = 10000;
+        let bowlOpened = false;
+
+        const GAME_LIST = [
+            { id: 'taixiu', name: 'TÀI XỈU 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-dice', color: 'from-red-600 to-amber-700' },
+            { id: 'xocdia', name: 'XÓC ĐĨA 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-circle-dot', color: 'from-emerald-600 to-teal-800' },
+            { id: 'baucua', name: 'BẦU CUA 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-fish', color: 'from-orange-600 to-rose-700' },
+            { id: 'baccarat', name: 'BACCARAT 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-spade', color: 'from-indigo-600 to-blue-800' },
+            { id: 'dragon', name: 'RỒNG HỔ 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-dragon', color: 'from-red-700 to-amber-600' },
+            { id: 'slot', name: 'QUAY HŨ 3 HÌNH', sub: '2 hình kề thắng', icon: 'fa-gem', color: 'from-purple-600 to-pink-700' },
+            { id: 'wheel', name: 'VÒNG QUAY MAY MẮN', sub: 'Thưởng trực tiếp', icon: 'fa-dharmachakra', color: 'from-yellow-500 to-amber-700' },
+            { id: 'poker', name: 'POKER MINI', sub: 'Chia bài & Tự lật', icon: 'fa-heart', color: 'from-rose-700 to-red-900' },
+            { id: 'crash', name: 'MÁY BAY 24/7', sub: 'Nổ Ngẫu Nhiên', icon: 'fa-plane-departure', color: 'from-sky-600 to-blue-800' },
+            { id: 'lode', name: 'XỔ SỐ LÔ ĐỀ', sub: 'Chạy số từng con', icon: 'fa-clover', color: 'from-green-600 to-emerald-800' },
+            { id: 'lieng', name: 'LIÊNG 3 LÁ', sub: 'Cược trước & Tự lật', icon: 'fa-layer-group', color: 'from-blue-700 to-indigo-900' },
+            { id: 'sanca', name: 'BẮN CÁ ĐẠI DƯƠNG', sub: 'Đạn Dễ Hạ Cá', icon: 'fa-water', color: 'from-cyan-600 to-blue-900' },
+            { id: 'keno', name: 'KENO 24/7', sub: 'Cược 30s | Chờ 10s', icon: 'fa-bowling-ball', color: 'from-fuchsia-600 to-pink-800' }
+        ];
+
+        function getGlobalRoundState(cycleDurationSeconds = 40, bettingSeconds = 30) {
+            const now = Date.now();
+            const totalSeconds = Math.floor(now / 1000);
+            const roundId = Math.floor(totalSeconds / cycleDurationSeconds);
+            const currentSecondInCycle = totalSeconds % cycleDurationSeconds;
+
+            let phase = 'BETTING', timeLeft = bettingSeconds - currentSecondInCycle;
+            if (currentSecondInCycle >= bettingSeconds) { 
+                phase = 'SQUEEZING'; 
+                timeLeft = cycleDurationSeconds - currentSecondInCycle; 
+            }
+            return { roundId, phase, timeLeft };
+        }
+
+        function getDeterministicRandom(seed) { let x = Math.sin(seed) * 10000; return x - Math.floor(x); }
+
+        function getGlobalGameResult(gameType, roundId, isForHistory = false) {
+            const currentSt = getGlobalRoundState(40, 30);
+
+            if (isForHistory || roundId < currentSt.roundId) {
+                if (gameType === 'taixiu') {
+                    return [
+                        Math.floor(getDeterministicRandom(roundId * 3 + 1) * 6) + 1, 
+                        Math.floor(getDeterministicRandom(roundId * 3 + 2) * 6) + 1, 
+                        Math.floor(getDeterministicRandom(roundId * 3 + 3) * 6) + 1
+                    ];
+                } else if (gameType === 'xocdia') {
+                    return [
+                        getDeterministicRandom(roundId * 4 + 1) > 0.5 ? 1 : 0, 
+                        getDeterministicRandom(roundId * 4 + 2) > 0.5 ? 1 : 0, 
+                        getDeterministicRandom(roundId * 4 + 3) > 0.5 ? 1 : 0, 
+                        getDeterministicRandom(roundId * 4 + 4) > 0.5 ? 1 : 0
+                    ];
+                } else if (gameType === 'baccarat') {
+                    return { 
+                        p1: Math.floor(getDeterministicRandom(roundId * 6 + 1) * 9) + 1, 
+                        p2: Math.floor(getDeterministicRandom(roundId * 6 + 2) * 9) + 1, 
+                        b1: Math.floor(getDeterministicRandom(roundId * 6 + 3) * 9) + 1, 
+                        b2: Math.floor(getDeterministicRandom(roundId * 6 + 4) * 9) + 1 
+                    };
+                } else if (gameType === 'dragon') {
+                    return { 
+                        d: Math.floor(getDeterministicRandom(roundId * 5 + 1) * 13) + 1, 
+                        t: Math.floor(getDeterministicRandom(roundId * 5 + 2) * 13) + 1 
+                    };
+                } else if (gameType === 'keno') {
+                    return Math.floor(getDeterministicRandom(roundId * 8) * 100) + 1;
+                } else if (gameType === 'baucua') {
+                    return [
+                        Math.floor(getDeterministicRandom(roundId * 4 + 1) * 6), 
+                        Math.floor(getDeterministicRandom(roundId * 4 + 2) * 6), 
+                        Math.floor(getDeterministicRandom(roundId * 4 + 3) * 6)
+                    ];
+                }
+            }
+
+            let ctrlMode = globalControls[gameType] || 'AUTO';
+
+            if (gameType === 'taixiu') {
+                if (ctrlMode === 'TAI') return [5, 5, 5];
+                if (ctrlMode === 'XIU') return [1, 2, 3];
+                let targetTai = userTxBets.TAI < userTxBets.XIU;
+                if (userTxBets.TAI === userTxBets.XIU) targetTai = getDeterministicRandom(roundId * 3) > 0.55;
+                return targetTai ? [4, 5, 5] : [1, 2, 4];
+            } 
+            else if (gameType === 'xocdia') {
+                if (ctrlMode === 'CHAN') return [1, 1, 0, 0];
+                if (ctrlMode === 'LE') return [1, 1, 1, 0];
+                if (ctrlMode === 'TRANG4') return [0, 0, 0, 0];
+                if (ctrlMode === 'DEN4') return [1, 1, 1, 1];
+                let targetChan = userXdBets.CHAN < userXdBets.LE;
+                if (userXdBets.CHAN === userXdBets.LE) targetChan = getDeterministicRandom(roundId * 4) > 0.55;
+                return targetChan ? [1, 1, 0, 0] : [1, 0, 0, 0];
+            } 
+            else if (gameType === 'baucua') {
+                if (ctrlMode !== 'AUTO' && !isNaN(parseInt(ctrlMode))) {
+                    let forced = parseInt(ctrlMode);
+                    return [forced, forced, (forced + 1) % 6];
+                }
+                return [Math.floor(getDeterministicRandom(roundId * 4 + 1) * 6), Math.floor(getDeterministicRandom(roundId * 4 + 2) * 6), Math.floor(getDeterministicRandom(roundId * 4 + 3) * 6)];
+            }
+            else if (gameType === 'baccarat') {
+                if (ctrlMode === 'PLAYER') return { p1: 5, p2: 4, b1: 1, b2: 2 };
+                if (ctrlMode === 'BANKER') return { p1: 1, p2: 2, b1: 5, b2: 4 };
+                if (ctrlMode === 'TIE') return { p1: 4, p2: 5, b1: 4, b2: 5 };
+                return { p1: 4, p2: 5, b1: 1, b2: 2 };
+            } 
+            else if (gameType === 'dragon') {
+                if (ctrlMode === 'DRAGON') return { d: 13, t: 2 };
+                if (ctrlMode === 'TIGER') return { d: 2, t: 13 };
+                if (ctrlMode === 'TIE') return { d: 10, t: 10 };
+                return { d: 12, t: 3 };
+            } 
+            else if (gameType === 'keno') {
+                if (ctrlMode === 'OVER') return 88;
+                if (ctrlMode === 'UNDER') return 12;
+                return 75;
+            }
+        }
+
+        function getHistoryRounds(gameType, currentRoundId, count = 10) {
+            let list = [];
+            for (let i = currentRoundId - count; i < currentRoundId; i++) { 
+                list.push({ roundId: i, res: getGlobalGameResult(gameType, i, true) }); 
+            }
+            return list;
+        }
+
+        function recordBetHistory(gameKey, gameName, betChoice, betAmount, resultStatus, winAmount) {
+            if (!currentUser) return;
+            db.ref('duc_game_bet_history').push({
+                id: 'BET_' + Date.now(),
+                username: currentUser.username,
+                gameKey: gameKey,
+                game: gameName,
+                choice: betChoice,
+                betAmount: betAmount,
+                status: resultStatus,
+                winAmount: winAmount,
+                time: new Date().toLocaleString('vi-VN')
+            });
+        }
+
+        function recordOfflineHistory(gameName, choice, betAmount, resultText, winAmount) {
+            db.ref('duc_offline_game_history').push({
+                id: 'OFF_' + Date.now(),
+                game: gameName,
+                choice: choice,
+                betAmount: betAmount,
+                resultText: resultText,
+                winAmount: winAmount,
+                time: new Date().toLocaleString('vi-VN')
+            });
+        }
+
+        function renderLobbyGames() {
+            const container = document.getElementById('game-grid-container');
+            if (!container) return;
+            container.innerHTML = GAME_LIST.map(g => `
+                <div onclick="enterGame('${g.id}')" class="game-card-snap game-card rounded-2xl p-3 flex flex-col items-center justify-between cursor-pointer group relative overflow-hidden">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br ${g.color} flex items-center justify-center my-2 shadow-lg border border-gold-400/40 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid ${g.icon} text-3xl sm:text-4xl text-white"></i>
+                    </div>
+                    <div class="text-center w-full">
+                        <h4 class="font-black text-sm sm:text-base text-white group-hover:text-gold-300 truncate">${g.name}</h4>
+                        <span class="text-[10px] text-emerald-400 font-bold block truncate">${g.sub}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function initAuth() {
+            const saved = localStorage.getItem('ducgemevui_current_user');
+            if (saved) { try { currentUser = JSON.parse(saved); } catch(e) { currentUser = null; } }
+            if (currentUser && globalAccounts.length > 0) {
+                let found = globalAccounts.find(acc => acc.username === currentUser.username);
+                if (found) { currentUser = found; localStorage.setItem('ducgemevui_current_user', JSON.stringify(currentUser)); }
+            }
+            updateUserUI();
+        }
+
+        function saveUser() {
+            if (currentUser) {
+                localStorage.setItem('ducgemevui_current_user', JSON.stringify(currentUser));
+                const idx = globalAccounts.findIndex(acc => acc.username === currentUser.username);
+                if (idx !== -1) globalAccounts[idx] = currentUser; else globalAccounts.push(currentUser);
+                saveAccountsToFirebase();
+                updateUserUI();
+            }
+        }
+
+        function updateUserUI() {
+            const authBtns = document.getElementById('auth-btns'), userInfo = document.getElementById('user-info');
+            if (currentUser) {
+                let found = globalAccounts.find(acc => acc.username === currentUser.username);
+                if (found && found.balance !== currentUser.balance) { currentUser.balance = found.balance; }
+
+                if (authBtns) authBtns.classList.add('hidden'); if (userInfo) userInfo.classList.remove('hidden');
+                document.getElementById('user-display-name').innerText = currentUser.username;
+                document.getElementById('user-balance').innerText = (currentUser.balance || 0).toLocaleString('vi-VN');
+            } else { if (authBtns) authBtns.classList.remove('hidden'); if (userInfo) userInfo.classList.add('hidden'); }
+        }
+
+        let isAuthRegisterMode = false;
+        function openAuthModal(mode) { AudioEngine.playClick(); isAuthRegisterMode = (mode === 'register'); document.getElementById('auth-modal-title').innerText = isAuthRegisterMode ? 'ĐĂNG KÝ TÀI KHOẢN' : 'ĐĂNG NHẬP DUC'; document.getElementById('modal-auth').classList.remove('hidden'); }
+        function toggleAuthMode() { isAuthRegisterMode = !isAuthRegisterMode; document.getElementById('auth-modal-title').innerText = isAuthRegisterMode ? 'ĐĂNG KÝ TÀI KHOẢN' : 'ĐĂNG NHẬP DUC'; }
+        
+        function handleAuth(e) {
+            e.preventDefault(); 
+            const uname = document.getElementById('auth-username').value.trim(), pass = document.getElementById('auth-password').value.trim();
+            let found = globalAccounts.find(acc => acc.username === uname);
+            if (isAuthRegisterMode) {
+                if (found) { showToast('Tài khoản đã tồn tại!'); return; }
+                currentUser = { username: uname, password: pass, balance: 10000000 };
+                saveUser(); closeModal('modal-auth'); showToast('Đăng ký thành công! Tặng 10M Xu.', true);
+            } else {
+                if (!found || found.password !== pass) { showToast('Sai tài khoản hoặc mật khẩu!'); return; }
+                currentUser = found; saveUser(); closeModal('modal-auth'); showToast('Đăng nhập thành công!', true);
+            }
+        }
+
+        function logout() { AudioEngine.playClick(); currentUser = null; localStorage.removeItem('ducgemevui_current_user'); updateUserUI(); showScreen('lobby'); }
+        function openDepositModal() { if(!currentUser) { openAuthModal('login'); return; } AudioEngine.playClick(); document.getElementById('modal-deposit').classList.remove('hidden'); }
+        function openWithdrawModal() { if(!currentUser) { openAuthModal('login'); return; } AudioEngine.playClick(); document.getElementById('modal-withdraw').classList.remove('hidden'); }
+        function closeModal(id) { AudioEngine.playClick(); document.getElementById(id).classList.add('hidden'); }
+
+        function requestDeposit(amount) {
+            if (!currentUser) return;
+            db.ref('duc_pending_deposits').push({
+                id: 'DEP_' + Date.now(),
+                type: 'NAP',
+                username: currentUser.username,
+                amount: amount,
+                details: 'Nạp Xu',
+                time: new Date().toLocaleString('vi-VN'),
+                status: 'PENDING'
+            });
+            closeModal('modal-deposit'); showToast(`Đã gửi yêu cầu nạp ${amount.toLocaleString('vi-VN')} Xu.`);
+        }
+
+        function handleWithdraw(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+            const bank = document.getElementById('withdraw-bank').value.trim(), accNum = document.getElementById('withdraw-account').value.trim(), amt = parseInt(document.getElementById('withdraw-amount').value);
+            if (amt > currentUser.balance) { showToast('Số dư xu không đủ!'); return; }
+            currentUser.balance -= amt; saveUser();
+            
+            db.ref('duc_pending_deposits').push({
+                id: 'WIT_' + Date.now(),
+                type: 'RUT',
+                username: currentUser.username,
+                amount: amt,
+                details: `${bank} - STK: ${accNum}`,
+                time: new Date().toLocaleString('vi-VN'),
+                status: 'PENDING'
+            });
+            closeModal('modal-withdraw'); showToast(`Đã gửi yêu cầu rút ${amt.toLocaleString('vi-VN')} Xu!`, true);
+        }
+
+        function showScreen(screen) {
+            AudioEngine.playClick();
+            if(fishInterval) { clearInterval(fishInterval); fishInterval = null; }
+            if(crashLoopInterval) { clearInterval(crashLoopInterval); crashLoopInterval = null; }
+            document.getElementById('screen-lobby').classList.add('hidden'); document.getElementById('screen-game').classList.add('hidden');
+            if (screen === 'lobby') { currentGame = null; document.getElementById('screen-lobby').classList.remove('hidden'); }
+            else document.getElementById('screen-game').classList.remove('hidden');
+        }
+
+        function updateOfflineButtonLabels() {
+            const formatted = selectedChip.toLocaleString('vi-VN') + 'đ';
+            const btnSlot = document.getElementById('btn-slot-spin');
+            if(btnSlot) btnSlot.innerText = `QUAY SLOT (${formatted})`;
+            const btnWheel = document.getElementById('btn-wheel-spin');
+            if(btnWheel) btnWheel.innerText = `XOAY VÒNG QUAY (${formatted})`;
+            const btnPoker = document.getElementById('btn-poker-deal');
+            if(btnPoker) btnPoker.innerText = `CHIA BÀI POKER (${formatted})`;
+            const btnCrash = document.getElementById('btn-crash-bet');
+            if(btnCrash) btnCrash.innerText = `CƯỢC (${formatted})`;
+            const btnLode = document.getElementById('btn-lode-play');
+            if(btnLode) btnLode.innerText = `QUAY LÔ ĐỀ (${formatted})`;
+            const btnLieng = document.getElementById('btn-lieng-play');
+            if(btnLieng) btnLieng.innerText = `TỐ LIÊNG (${formatted})`;
+            if(currentGame === 'wheel') updateWheelLabels();
+        }
+
+        function selectChip(val) { 
+            selectedChip = val; 
+            document.getElementById('custom-chip-input').value = val; 
+            AudioEngine.playClick(); 
+            updateOfflineButtonLabels();
+        }
+
+        function setCustomChip(val) { 
+            let num = parseInt(val); 
+            if (isNaN(num) || num < 1000) num = 1000; 
+            selectedChip = num; 
+            document.getElementById('custom-chip-input').value = num; 
+            updateOfflineButtonLabels();
+        }
+
+        function enterGame(gameKey) {
+            if (!currentUser) { showToast('Vui lòng Đăng nhập để chơi!'); openAuthModal('login'); return; }
+            currentGame = gameKey; isPlayingAnim = false; bowlOpened = false; showScreen('game');
+            const board = document.getElementById('game-board-area'), title = document.getElementById('current-game-title');
+            const gObj = GAME_LIST.find(g => g.id === gameKey); if (gObj) title.innerText = gObj.name;
+
+            if (gameKey === 'taixiu') initTaiXiuUI(board);
+            else if (gameKey === 'xocdia') initXocDiaUI(board);
+            else if (gameKey === 'baucua') initBauCuaUI(board);
+            else if (gameKey === 'baccarat') initBaccarat(board);
+            else if (gameKey === 'dragon') initDragonTiger(board);
+            else if (gameKey === 'slot') initSlot(board);
+            else if (gameKey === 'wheel') initWheel(board);
+            else if (gameKey === 'poker') initPoker(board);
+            else if (gameKey === 'crash') initCrash(board);
+            else if (gameKey === 'lode') initLoDe(board);
+            else if (gameKey === 'lieng') initLieng(board);
+            else if (gameKey === 'sanca') initSanCa(board);
+            else if (gameKey === 'keno') initKeno(board);
+
+            updateOfflineButtonLabels();
+        }
+
+        function renderDiceFaceHTML(val) {
+            let dots = ''; for(let i=0; i<val; i++) dots += `<div class="dot"></div>`;
+            return `<div class="dice-face dice-${val}">${dots}</div>`;
+        }
+
+        function setupDragBowl(bowlId, getPhaseFunc, onOpenedCallback) {
+            const bowl = document.getElementById(bowlId); if (!bowl) return;
+            let isDragging = false, startX = 0, startY = 0;
+            bowl.onpointerdown = (e) => {
+                if (getPhaseFunc() !== 'SQUEEZING') { showToast('Đang thời gian đặt cược (30s), không thể kéo mở!'); return; }
+                isDragging = true; startX = e.clientX; startY = e.clientY; bowl.setPointerCapture(e.pointerId);
+            };
+            bowl.onpointermove = (e) => { if (!isDragging) return; bowl.style.transform = `translate3d(${e.clientX - startX}px, ${e.clientY - startY}px, 0)`; };
+            bowl.onpointerup = () => { 
+                if (isDragging) { 
+                    isDragging = false; 
+                    bowl.classList.add('hidden'); 
+                    bowlOpened = true;
+                    if (onOpenedCallback) onOpenedCallback();
+                } 
+            };
+        }
+
+        // --- 1. TÀI XỈU 24/7 ---
+        let userTxBets = { roundId: -1, TAI: 0, XIU: 0, processed: false };
+        function initTaiXiuUI(container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="w-full bg-black/60 p-2 rounded-xl border border-gold-500/30 flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-yellow-300">LỊCH SỬ PHIÊN:</span>
+                        <div id="tx-history-dots" class="flex space-x-1.5 overflow-x-auto"></div>
+                    </div>
+                    <div class="flex items-center justify-between w-full bg-casino-card border border-gold-500/30 px-4 py-2 rounded-xl">
+                        <div class="text-xs text-gray-300 font-bold">TRẠNG THÁI: <span id="tx-status" class="text-yellow-400">ĐẶT CƯỢC</span></div>
+                        <div class="text-xl font-extrabold text-gold-400 font-digits" id="tx-timer">--s</div>
+                    </div>
+                    <div class="relative w-full aspect-video max-h-[280px] bg-gradient-to-b from-red-950 via-casino-dark to-black rounded-2xl border-2 border-gold-500/40 p-4 flex items-center justify-between overflow-hidden shadow-2xl">
+                        <div onclick="placeTXBet('TAI')" class="w-1/3 h-full rounded-xl bg-red-900/40 border border-red-500 flex flex-col items-center justify-center cursor-pointer hover:bg-red-900/60 transition-all">
+                            <span class="text-2xl font-black text-red-500">TÀI</span>
+                            <span class="text-xs text-yellow-300 font-digits">Cược: <span id="bet-TAI">0</span>đ</span>
+                        </div>
+                        <div class="relative w-36 h-36 flex items-center justify-center">
+                            <div class="w-full h-full rounded-full bg-black flex flex-col items-center justify-center p-2 border-2 border-gold-500">
+                                <div id="tx-d1" class="mb-1"></div><div class="flex space-x-2"><div id="tx-d2"></div><div id="tx-d3"></div></div>
+                            </div>
+                            <div id="tx-bowl" class="absolute inset-0 rounded-full bg-gradient-to-br from-yellow-600 via-amber-800 to-yellow-900 border-4 border-gold-400 shadow-2xl flex flex-col items-center justify-center bowl-touch-area">
+                                <i class="fa-solid fa-lock text-yellow-300 mb-1" id="tx-lock-icon"></i>
+                                <span class="text-[11px] font-bold text-yellow-200 text-center" id="tx-bowl-text">KÉO MỞ ĐĨA</span>
+                            </div>
+                        </div>
+                        <div onclick="placeTXBet('XIU')" class="w-1/3 h-full rounded-xl bg-blue-900/40 border border-blue-500 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-900/60 transition-all">
+                            <span class="text-2xl font-black text-blue-400">XỈU</span>
+                            <span class="text-xs text-yellow-300 font-digits">Cược: <span id="bet-XIU">0</span>đ</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            setupDragBowl('tx-bowl', () => getGlobalRoundState(40, 30).phase, checkTXReward);
+        }
+        function placeTXBet(side) {
+            const st = getGlobalRoundState(40, 30);
+            if (st.phase !== 'BETTING') return showToast('Hết thời gian cược 30s!');
+            if (userTxBets.roundId !== st.roundId) { userTxBets = { roundId: st.roundId, TAI: 0, XIU: 0, processed: false }; }
+            const otherSide = side === 'TAI' ? 'XIU' : 'TAI';
+            if (userTxBets[otherSide] > 0) return showToast('Chỉ được cược 1 bên!');
+            if (currentUser.balance < selectedChip) return showToast('Số dư không đủ!');
+            AudioEngine.playClick(); currentUser.balance -= selectedChip; saveUser();
+            userTxBets[side] += selectedChip; document.getElementById(`bet-${side}`).innerText = userTxBets[side].toLocaleString('vi-VN');
+        }
+        function checkTXReward() {
+            const st = getGlobalRoundState(40, 30);
+            if (userTxBets.roundId === st.roundId && !userTxBets.processed) {
+                userTxBets.processed = true;
+                const res = getGlobalGameResult('taixiu', st.roundId);
+                const sum = res.reduce((a,b)=>a+b, 0), winSide = sum >= 11 ? 'TAI' : 'XIU';
+                const winAmt = Math.floor(userTxBets[winSide] * 1.95), totalBet = userTxBets.TAI + userTxBets.XIU;
+                if (winAmt > 0) { currentUser.balance += winAmt; saveUser(); showToast(`🎉 Nặn xong! Bạn Thắng +${winAmt.toLocaleString('vi-VN')}đ!`, true); recordBetHistory('taixiu', 'Tài Xỉu 24/7', winSide, totalBet, 'WIN', winAmt); }
+                else if (totalBet > 0) { showToast('Chúc bạn may mắn phiên sau!'); recordBetHistory('taixiu', 'Tài Xỉu 24/7', userTxBets.TAI > 0 ? 'TÀI' : 'XỈU', totalBet, 'LOSE', 0); }
+            }
+        }
+
+        // --- 2. XÓC ĐĨA 24/7 ---
+        let userXdBets = { roundId: -1, CHAN: 0, LE: 0, processed: false };
+        function initXocDiaUI(container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="w-full bg-black/60 p-2 rounded-xl border border-gold-500/30 flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-yellow-300">LỊCH SỬ PHIÊN:</span>
+                        <div id="xd-history-dots" class="flex space-x-1.5 overflow-x-auto"></div>
+                    </div>
+                    <div class="flex items-center justify-between w-full bg-casino-card border border-gold-500/30 px-4 py-2 rounded-xl">
+                        <div class="text-xs text-gray-300 font-bold">TRẠNG THÁI: <span id="xd-status" class="text-yellow-400">ĐẶT CƯỢC</span></div>
+                        <div class="text-xl font-extrabold text-gold-400 font-digits" id="xd-timer">--s</div>
+                    </div>
+                    <div class="relative w-full aspect-video max-h-[220px] bg-emerald-950 rounded-2xl border-2 border-gold-500/40 p-4 flex items-center justify-center shadow-2xl">
+                        <div class="relative w-36 h-36 flex items-center justify-center">
+                            <div class="w-full h-full rounded-full bg-emerald-900 grid grid-cols-2 p-4 gap-2 items-center justify-items-center border-2 border-gold-400">
+                                <div class="w-6 h-6 rounded-full bg-white border" id="xd-c1"></div><div class="w-6 h-6 rounded-full bg-white border" id="xd-c2"></div>
+                                <div class="w-6 h-6 rounded-full bg-white border" id="xd-c3"></div><div class="w-6 h-6 rounded-full bg-white border" id="xd-c4"></div>
+                            </div>
+                            <div id="xd-bowl" class="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-700 via-teal-900 to-emerald-950 border-4 border-gold-400 shadow-2xl flex flex-col items-center justify-center bowl-touch-area">
+                                <i class="fa-solid fa-lock text-yellow-300 mb-1" id="xd-lock-icon"></i>
+                                <span class="text-[11px] font-bold text-yellow-200 text-center" id="xd-bowl-text">KÉO MỞ ĐĨA</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 w-full">
+                        <button onclick="placeXDBet('CHAN')" class="bg-red-900/60 border border-red-500 p-3 rounded-xl text-center"><span class="font-bold text-red-400 text-sm">CHẮN (x1.95)</span><div class="text-xs text-yellow-300 font-digits"><span id="xd-CHAN">0</span>đ</div></button>
+                        <button onclick="placeXDBet('LE')" class="bg-gray-800 border border-gray-500 p-3 rounded-xl text-center"><span class="font-bold text-white text-sm">LẺ (x1.95)</span><div class="text-xs text-yellow-300 font-digits"><span id="xd-LE">0</span>đ</div></button>
+                    </div>
+                </div>
+            `;
+            setupDragBowl('xd-bowl', () => getGlobalRoundState(40, 30).phase, checkXDReward);
+        }
+        function placeXDBet(side) {
+            const st = getGlobalRoundState(40, 30);
+            if (st.phase !== 'BETTING') return showToast('Hết thời gian cược 30s!');
+            if (userXdBets.roundId !== st.roundId) { userXdBets = { roundId: st.roundId, CHAN: 0, LE: 0, processed: false }; }
+            const otherSide = side === 'CHAN' ? 'LE' : 'CHAN';
+            if (userXdBets[otherSide] > 0) return showToast('Chỉ được cược 1 bên!');
+            if (currentUser.balance < selectedChip) return showToast('Số dư không đủ!');
+            AudioEngine.playClick(); currentUser.balance -= selectedChip; saveUser();
+            userXdBets[side] += selectedChip; document.getElementById(`xd-${side}`).innerText = userXdBets[side].toLocaleString('vi-VN');
+        }
+        function checkXDReward() {
+            const st = getGlobalRoundState(40, 30);
+            if (userXdBets.roundId === st.roundId && !userXdBets.processed) {
+                userXdBets.processed = true;
+                const res = getGlobalGameResult('xocdia', st.roundId);
+                const reds = res.filter(r => r === 1).length, winSide = reds % 2 === 0 ? 'CHAN' : 'LE';
+                let winAmt = 0;
+                if (winSide === 'CHAN') winAmt += userXdBets.CHAN * 1.95;
+                if (winSide === 'LE') winAmt += userXdBets.LE * 1.95;
+
+                winAmt = Math.floor(winAmt);
+                let totalBet = userXdBets.CHAN + userXdBets.LE;
+                if (winAmt > 0) { currentUser.balance += winAmt; saveUser(); showToast(`🎉 Thắng Xóc Đĩa +${winAmt.toLocaleString('vi-VN')}đ!`, true); recordBetHistory('xocdia', 'Xóc Đĩa 24/7', winSide, totalBet, 'WIN', winAmt); }
+                else if (totalBet > 0) { showToast('Chúc bạn may mắn phiên sau!'); recordBetHistory('xocdia', 'Xóc Đĩa 24/7', userXdBets.CHAN > 0 ? 'CHẮN' : 'LẺ', totalBet, 'LOSE', 0); }
+            }
+        }
+
+        // --- 3. BẦU CUA 24/7 ---
+        let userBcBets = { roundId: -1, BAU:0, CUA:0, TOM:0, CA:0, GA:0, NAI:0, processed: false };
+        function initBauCuaUI(container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="flex items-center justify-between w-full bg-casino-card border border-gold-500/30 px-4 py-2 rounded-xl">
+                        <div class="text-xs text-gray-300 font-bold">TRẠNG THÁI: <span id="bc-status" class="text-yellow-400">ĐẶT CƯỢC</span></div>
+                        <div class="text-xl font-extrabold text-gold-400 font-digits" id="bc-timer">--s</div>
+                    </div>
+                    <div class="relative w-full p-6 bg-red-950 rounded-2xl border-2 border-gold-500/40 shadow-2xl flex items-center justify-center">
+                        <div class="flex space-x-3">
+                            <div id="bc-d1" class="w-12 h-12 bg-white rounded-xl text-black font-bold flex items-center justify-center text-sm shadow">?</div>
+                            <div id="bc-d2" class="w-12 h-12 bg-white rounded-xl text-black font-bold flex items-center justify-center text-sm shadow">?</div>
+                            <div id="bc-d3" class="w-12 h-12 bg-white rounded-xl text-black font-bold flex items-center justify-center text-sm shadow">?</div>
+                        </div>
+                        <div id="bc-bowl" class="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-700 to-red-950 border-4 border-gold-400 shadow-2xl flex flex-col items-center justify-center bowl-touch-area">
+                            <i class="fa-solid fa-lock text-yellow-300 mb-1"></i>
+                            <span class="text-xs font-bold text-yellow-200">KÉO MỞ ĐĨA</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 w-full">
+                        ${[
+                            { name: 'BAU', label: 'Bầu', icon: 'fa-box', color: 'text-amber-400' },
+                            { name: 'CUA', label: 'Cua', icon: 'fa-shield-halved', color: 'text-red-500' },
+                            { name: 'TOM', label: 'Tôm', icon: 'fa-shrimp', color: 'text-rose-400' },
+                            { name: 'CA', label: 'Cá', icon: 'fa-fish', color: 'text-blue-400' },
+                            { name: 'GA', label: 'Gà', icon: 'fa-feather', color: 'text-yellow-400' },
+                            { name: 'NAI', label: 'Nai', icon: 'fa-hand-horns', color: 'text-orange-400' }
+                        ].map(s => `
+                            <div onclick="placeBCBet('${s.name}')" class="bg-casino-card border border-gold-500/30 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer hover:border-gold-400 transition-all">
+                                <i class="fa-solid ${s.icon} ${s.color} text-2xl mb-1"></i>
+                                <span class="font-bold text-xs">${s.label}</span>
+                                <div class="text-xs text-yellow-300 font-digits"><span id="bc-bet-${s.name}">0</span>đ</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            setupDragBowl('bc-bowl', () => getGlobalRoundState(40, 30).phase, checkBcReward);
+        }
+        function placeBCBet(sym) {
+            const st = getGlobalRoundState(40, 30);
+            if (st.phase !== 'BETTING') return showToast('Hết thời gian cược 30s!');
+            if (userBcBets.roundId !== st.roundId) { userBcBets = { roundId: st.roundId, BAU:0, CUA:0, TOM:0, CA:0, GA:0, NAI:0, processed: false }; }
+            
+            let alreadyChosen = Object.keys(userBcBets).some(k => k !== 'roundId' && k !== 'processed' && k !== sym && userBcBets[k] > 0);
+            if (alreadyChosen) return showToast('Bầu Cua chỉ được phép cược 1 bên (1 con duy nhất)!');
+
+            if (currentUser.balance < selectedChip) return showToast('Số dư không đủ!');
+            AudioEngine.playClick(); currentUser.balance -= selectedChip; saveUser();
+            userBcBets[sym] += selectedChip; document.getElementById(`bc-bet-${sym}`).innerText = userBcBets[sym].toLocaleString('vi-VN');
+        }
+        function checkBcReward() {
+            const st = getGlobalRoundState(40, 30);
+            if (userBcBets.roundId === st.roundId && !userBcBets.processed) {
+                userBcBets.processed = true;
+                const res = getGlobalGameResult('baucua', st.roundId);
+                const bcMap = { 'BAU': 0, 'CUA': 1, 'TOM': 2, 'CA': 3, 'GA': 4, 'NAI': 5 };
+                let chosenSym = Object.keys(userBcBets).find(k => k !== 'roundId' && k !== 'processed' && userBcBets[k] > 0);
+                
+                if (chosenSym) {
+                    let betVal = userBcBets[chosenSym];
+                    let targetId = bcMap[chosenSym];
+                    let matches = res.filter(val => val === targetId).length;
+                    let totalWin = 0;
+                    if (matches > 0) {
+                        totalWin = betVal + (betVal * matches);
+                    }
+                    if (totalWin > 0) {
+                        currentUser.balance += totalWin; saveUser();
+                        showToast(`🎉 Thắng Bầu Cua +${totalWin.toLocaleString('vi-VN')}đ!`, true);
+                        recordBetHistory('baucua', 'Bầu Cua 24/7', chosenSym, betVal, 'WIN', totalWin);
+                    } else {
+                        showToast('Chúc bạn may mắn phiên sau!');
+                        recordBetHistory('baucua', 'Bầu Cua 24/7', chosenSym, betVal, 'LOSE', 0);
+                    }
+                }
+            }
+        }
+
+        // --- 4. BACCARAT 24/7 ---
+        let userBacBets = { roundId: -1, PLAYER: 0, BANKER: 0, TIE: 0, processed: false };
+        function initBaccarat(container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="w-full bg-black/60 p-2 rounded-xl border border-gold-500/30 flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-yellow-300">LỊCH SỬ PHIÊN:</span>
+                        <div id="bac-history-dots" class="flex space-x-1.5 overflow-x-auto"></div>
+                    </div>
+                    <div class="flex items-center justify-between w-full bg-casino-card border border-gold-500/30 px-4 py-2 rounded-xl">
+                        <div class="text-xs text-gray-300 font-bold">TRẠNG THÁI: <span id="bac-status" class="text-yellow-400">ĐẶT CƯỢC</span></div>
+                        <div class="text-xl font-extrabold text-gold-400 font-digits" id="bac-timer">--s</div>
+                    </div>
+                    <div class="bg-emerald-950 border-2 border-gold-500/50 rounded-2xl p-4 w-full shadow-2xl text-center space-y-4 relative overflow-hidden">
+                        <div class="relative flex justify-between items-center bg-black/50 p-4 rounded-xl border border-gold-500/30 min-h-[120px]">
+                            <div class="text-center w-1/2">
+                                <div class="text-xs text-blue-400 font-bold uppercase">PLAYER</div>
+                                <div id="bac-player-cards" class="flex space-x-1 my-2 justify-center">
+                                    <div class="w-10 h-14 bg-blue-900 border-2 border-gold-400 text-yellow-300 font-bold flex items-center justify-center rounded" id="bac-p1">🂠</div>
+                                    <div class="w-10 h-14 bg-blue-900 border-2 border-gold-400 text-yellow-300 font-bold flex items-center justify-center rounded" id="bac-p2">🂠</div>
+                                </div>
+                                <div class="text-xs text-yellow-300 font-digits">Điểm: <span id="bac-player-score">?</span></div>
+                            </div>
+                            <div class="text-xl font-black text-gold-400">VS</div>
+                            <div class="text-center w-1/2">
+                                <div class="text-xs text-red-500 font-bold uppercase">BANKER</div>
+                                <div id="bac-banker-cards" class="flex space-x-1 my-2 justify-center">
+                                    <div class="w-10 h-14 bg-red-900 border-2 border-gold-400 text-yellow-300 font-bold flex items-center justify-center rounded" id="bac-b1">🂠</div>
+                                    <div class="w-10 h-14 bg-red-900 border-2 border-gold-400 text-yellow-300 font-bold flex items-center justify-center rounded" id="bac-b2">🂠</div>
+                                </div>
+                                <div class="text-xs text-yellow-300 font-digits">Điểm: <span id="bac-banker-score">?</span></div>
+                            </div>
+                            
+                            <div id="bac-bowl" class="hidden absolute inset-0 rounded-xl bg-gradient-to-br from-blue-950 via-indigo-950 to-black border-2 border-gold-400 shadow-2xl flex flex-col items-center justify-center bowl-touch-area">
+                                <i class="fa-solid fa-hand text-yellow-300 text-2xl mb-1"></i>
+                                <span class="text-xs font-bold text-yellow-200">VUỐT KÉO LẬT BÀI</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-3">
+                            <button onclick="placeBacBet('PLAYER')" class="bg-blue-900/80 hover:bg-blue-800 border border-blue-400 p-3 rounded-xl text-center">
+                                <div class="font-bold text-xs text-blue-300">PLAYER (x2)</div>
+                                <div class="text-xs font-digits text-yellow-300"><span id="bac-bet-PLAYER">0</span>đ</div>
+                            </button>
+                            <button onclick="placeBacBet('TIE')" class="bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-400 p-3 rounded-xl text-center">
+                                <div class="font-bold text-xs text-emerald-300">HÒA (x8)</div>
+                                <div class="text-xs font-digits text-yellow-300"><span id="bac-bet-TIE">0</span>đ</div>
+                            </button>
+                            <button onclick="placeBacBet('BANKER')" class="bg-red-900/80 hover:bg-red-800 border border-red-400 p-3 rounded-xl text-center">
+                                <div class="font-bold text-xs text-red-300">BANKER (x1.95)</div>
+                                <div class="text-xs font-digits text-yellow-300"><span id="bac-bet-BANKER">0</span>đ</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            setupDragBowl('bac-bowl', () => getGlobalRoundState(40, 30).phase, checkBacReward);
+        }
+        function placeBacBet(side) {
+            const st = getGlobalRoundState(40, 30);
+            if (st.phase !== 'BETTING') return showToast('Hết thời gian cược 30s!');
+            if (userBacBets.roundId !== st.roundId) { userBacBets = { roundId: st.roundId, PLAYER: 0, BANKER: 0, TIE: 0, processed: false }; }
+            
+            if (side === 'PLAYER' && userBacBets.BANKER > 0) return showToast('Chỉ được cược 1 bên Player hoặc Banker!');
+            if (side === 'BANKER' && userBacBets.PLAYER > 0) return showToast('Chỉ được cược 1 bên Player hoặc Banker!');
+
+            if (currentUser.balance < selectedChip) return showToast('Số dư không đủ!');
+            AudioEngine.playClick(); currentUser.balance -= selectedChip; saveUser();
+            userBacBets[side] += selectedChip; document.getElementById(`bac-bet-${side}`).innerText = userBacBets[side].toLocaleString('vi-VN');
+        }
+        function checkBacReward() {
+            const st = getGlobalRoundState(40, 30);
+            if (userBacBets.roundId === st.roundId && !userBacBets.processed) {
+                userBacBets.processed = true;
+                const res = getGlobalGameResult('baccarat', st.roundId);
+                const pScore = (res.p1 + res.p2) % 10, bScore = (res.b1 + res.b2) % 10;
+                let winSide = pScore > bScore ? 'PLAYER' : (bScore > pScore ? 'BANKER' : 'TIE');
+                let winAmt = 0;
+                if (winSide === 'PLAYER') winAmt += userBacBets.PLAYER * 2;
+                if (winSide === 'BANKER') winAmt += userBacBets.BANKER * 1.95;
+                if (winSide === 'TIE') {
+                    winAmt += userBacBets.TIE * 8;
+                    currentUser.balance += userBacBets.PLAYER + userBacBets.BANKER;
+                }
+                winAmt = Math.floor(winAmt);
+                let totalBet = userBacBets.PLAYER + userBacBets.BANKER + userBacBets.TIE;
+                if (winAmt > 0) { currentUser.balance += winAmt; saveUser(); showToast(`🎉 Thắng Baccarat +${winAmt.toLocaleString('vi-VN')}đ!`, true); recordBetHistory('baccarat', 'Baccarat 24/7', winSide, totalBet, 'WIN', winAmt); }
+                else if (totalBet > 0) { showToast('Chúc bạn may mắn phiên sau!'); recordBetHistory('baccarat', 'Baccarat 24/7', 'Đa cửa', totalBet, 'LOSE', 0); }
+            }
+        }
+
+        // --- 5. RỒNG HỔ 24/7 ---
+        let userDtBets = { roundId: -1, DRAGON: 0, TIGER: 0, TIE: 0, processed: false };
+        function initDragonTiger(container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="w-full bg-black/60 p-2 rounded-xl border border-gold-500/30 flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-yellow-300">LỊCH SỬ PHIÊN:</span>
+                        <div id="dt-history-dots" class="flex space-x-1.5 overflow-x-auto"></div>
+                    </div>
+                    <div class="flex items-center justify-between w-full bg-casino-card border border-gold-500/30 px-4 py-2 rounded-xl">
+                        <div class="text-xs text-gray-300 font-bold">TRẠNG THÁI: <span id="dt-status" class="text-yellow-400">ĐẶT CƯỢC</span></div>
+                        <div class="text-xl font-extrabold text-gold-400 font-digits" id="dt-timer">--s</div>
+                    </div>
+                    <div class="bg-casino-card border-2 border-gold-500/50 rounded-2xl p-4 w-full text-center space-y-4 relative overflow-hidden">
+                        <div class="relative flex justify-around items-center bg-black/60 p-4 rounded-xl border border-gold-500/30 min-h-[120px]">
+                            <div>
+                                <div class="text-xs text-red-500 font-bold mb-2 uppercase">RỒNG (DRAGON)</div>
+                                <div class="w-12 h-16 bg-red-950 border-2 border-gold-400 text-yellow-300 font-bold text-2xl flex items-center justify-center rounded mx-auto" id="dt-val-d">🂠</div>
+                            </div>
+                            <div class="text-xl font-black text-gold-400">VS</div>
+                            <div>
+                                <div class="text-xs text-amber-500 font-bold mb-2 uppercase">HỔ (TIGER)</div>
+                                <div class="w-12 h-16 bg-amber-950 border-2 border-gold-400 text-yellow-300 font-bold text-2xl flex items-center justify-center rounded mx-auto" id="dt-val-t">🂠</div>
+                            </div>
+
+                            <div id="dt-bowl" class="hidden absolute inset-0 rounded-xl bg-gradient-to-br from-red-950 via-amber-950 to-black border-2 border-gold-400 shadow-2xl flex flex-col items-center justify-center bowl-touch-area">
+                                <i class="fa-solid fa-hand text-yellow-300 text-2xl mb-1"></i>
+                                <span class="text-xs font-bold text-yellow-200">VUỐT KÉO LẬT BÀI</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="placeDtBet('DRAGON')" class="bg-red-900/80 border border-red-500 p-3 rounded-xl"><div class="font-bold text-xs text-red-300">RỒNG (x1.95)</div><div class="text-xs font-digits text-yellow-300"><span id="dt-bet-DRAGON">0</span>đ</div></button>
+                            <button onclick="placeDtBet('TIE')" class="bg-emerald-900/80 border border-emerald-500 p-3 rounded-xl"><div class="font-bold text-xs text-emerald-300">HÒA (x8)</div><div class="text-xs font-digits text-yellow-300"><span id="dt-bet-TIE">0</span>đ</div></button>
+                            <button onclick="placeDtBet('TIGER')" class="bg-amber-900/80 border border-amber-500 p-3 rounded-xl"><div class="font-bold text-xs text-amber-300">HỔ (x1.95)</div><div class="text-xs font-digits text-yellow-300"><span id="dt-bet-TIGER">0</span>đ</div></button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            setupDragBowl('dt-bowl', () => getGlobalRoundState(40, 30).phase, checkDtReward);
+        }
+        function placeDtBet(side) {
+            const st = getGlobalRoundState(40, 30);
+            if (st.phase !== 'BETTING') return showToast('Hết thời gian cược 30s!');
+            if (userDtBets.roundId !== st.roundId) { userDtBets = { roundId: st.roundId, DRAGON: 0, TIGER: 0, TIE: 0, processed: false }; }
+            
+            if (side === 'DRAGON' && userDtBets.TIGER > 0) return showToast('Chỉ được cược 1 bên Rồng hoặc Hổ!');
+            if (side === 'TIGER' && userDtBets.DRAGON > 0) return showToast('Chỉ được cược 1 bên Rồng hoặc Hổ!');
+
+            if (currentUser.balance < selectedChip) return showToast('Thiếu chip!');
+            AudioEngine.playClick(); currentUser.balance -= selectedChip; saveUser();
+            userDtBets[side] += selectedChip; document.getElementById(`dt-bet-${side}`).innerText = userDtBets[side].toLocaleString('vi-VN');
+        }
+        function checkDtReward() {
+            const st = getGlobalRoundState(40, 30);
+            if (userDtBets.roundId === st.roundId && !userDtBets.processed) {
+                userDtBets.processed = true;
+                const res = getGlobalGameResult('dragon', st.roundId);
+                let winSide = res.d > res.t ? 'DRAGON' : (res.t > res.d ? 'TIGER' : 'TIE');
+                let winAmt = 0;
+                if (winSide === 'DRAGON') winAmt += userDtBets.DRAGON * 1.95;
+                if (winSide === 'TIGER') winAmt += userDtBets.TIGER * 1.95;
+                if (winSide === 'TIE') {
+                    winAmt += userDtBets.TIE * 8;
+                    currentUser.balance += (userDtBets.DRAGON + userDtBets.TIGER) * 0.5;
+                }
+                winAmt = Math.floor(winAmt);
+                let totalBet = userDtBets.DRAGON + userDtBets.TIGER + userDtBets.TIE;
+                if (winAmt > 0) { currentUser.balance += winAmt; saveUser(); showToast(`🎉 Thắng Rồng Hổ +${winAmt.toLocaleString('vi-VN')}đ!`, true); recordBetHistory('dragon', 'Rồng Hổ 24/7', winSide, totalBet, 'WIN', winAmt); }
+                else if (totalBet > 0) { showToast('Chúc bạn may mắn phiên sau!'); recordBetHistory('dragon', 'Rồng Hổ 24/7', 'Đa cửa', totalBet, 'LOSE', 0); }
+            }
+        }
+
+        // --- 6. QUAY HŨ 3 HÌNH (OFFLINE) ---
+        function initSlot(container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="bg-casino-card border-2 border-gold-500/50 rounded-2xl p-6 w-full text-center space-y-4">
+                        <div class="flex justify-center space-x-3 bg-black/80 p-4 rounded-xl border border-gold-500/30">
+                            <div id="slot-1" class="w-16 h-20 bg-purple-900 border-2 border-gold-400 rounded-xl flex items-center justify-center text-3xl">💎</div>
+                            <div id="slot-2" class="w-16 h-20 bg-purple-900 border-2 border-gold-400 rounded-xl flex items-center justify-center text-3xl">7️⃣</div>
+                            <div id="slot-3" class="w-16 h-20 bg-purple-900 border-2 border-gold-400 rounded-xl flex items-center justify-center text-3xl">🔔</div>
+                        </div>
+                        <div class="text-xs text-gold-300 font-bold">Luật: 2 hình liền kề cạnh nhau thắng x2. 3 hình giống nhau thắng x10!</div>
+                        <button onclick="spinSlot()" id="btn-slot-spin" class="gold-btn w-full py-3.5 rounded-xl font-bold uppercase">QUAY SLOT (${selectedChip.toLocaleString('vi-VN')}đ)</button>
+                    </div>
+                </div>
+            `;
+        }
+        function spinSlot() {
+            if (isPlayingAnim) return;
+            if (currentUser.balance < selectedChip) return showToast('Số dư không đủ!');
+            isPlayingAnim = true; currentUser.balance -= selectedChip; saveUser();
+            document.getElementById('btn-slot-spin').innerText = "ĐANG CUỘN...";
+
+            const s1 = document.getElementById('slot-1'), s2 = document.getElementById('slot-2'), s3 = document.getElementById('slot-3');
+            s1.classList.add('animate-slot'); s2.classList.add('animate-slot'); s3.classList.add('animate-slot');
+
+            const icons = ['💎', '7️⃣', '🔔', '👑', '🍒'];
+            const i1 = icons[Math.floor(Math.random() * icons.length)], i2 = icons[Math.floor(Math.random() * icons.length)], i3 = icons[Math.floor(Math.random() * icons.length)];
+
+            setTimeout(() => { s1.classList.remove('animate-slot'); s1.innerText = i1; }, 800);
+            setTimeout(() => { s2.classList.remove('animate-slot'); s2.innerText = i2; }, 1300);
+            setTimeout(() => { s3.classList.remove('animate-slot'); s3.innerText = i3; }, 1800);
+
+            setTimeout(() => {
+                let winAmt = 0;
+                if (i1 === i2 && i2 === i3) {
+                    winAmt = selectedChip * 10; currentUser.balance += winAmt; saveUser();
+                    showToast(`🎉 NỔ HŨ 3 HÌNH GIỐNG NHAU +${winAmt.toLocaleString('vi-VN')}đ!`, true);
+                    recordOfflineHistory('Slot Hũ', '3 hình', selectedChip, `${i1} ${i2} ${i3}`, winAmt);
+                } else if (i1 === i2 || i2 === i3) {
+                    winAmt = selectedChip * 2; currentUser.balance += winAmt; saveUser();
+                    showToast(`🎉 Thắng 2 hình liền kề +${winAmt.toLocaleString('vi-VN')}đ!`, true);
+                    recordOfflineHistory('Slot Hũ', '2 hình kề', selectedChip, `${i1} ${i2} ${i3}`, winAmt);
+                } else {
+                    showToast('Chúc bạn may mắn lần sau!');
+                    recordOfflineHistory('Slot Hũ', 'Quay trượt', selectedChip, `${i1} ${i2} ${i3}`, 0);
+                }
+                updateOfflineButtonLabels();
+                isPlayingAnim = false;
+            }, 2000);
+        }
+
+        // --- 7. VÒNG QUAY MAY MẮN (OFFLINE) ---
+        let currentWheelAngle = 0;
+        const WHEEL_MULTS = [0.1, 0.2, 0.5, 1, 2, 5];
+
+        function initWheel(container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="bg-casino-card border-2 border-gold-500/50 rounded-2xl p-6 w-full text-center space-y-4">
+                        <div class="wheel-container">
+                            <div class="wheel-pointer"></div>
+                            <div class="wheel-disc flex items-center justify-center relative shadow-2xl" id="wheel-disc-element">
+                                <div class="absolute inset-0 flex items-center justify-center text-xs font-black text-white drop-shadow"><span id="w-lbl-0" style="transform: rotate(30deg) translateY(-85px)">--</span></div>
+                                <div class="absolute inset-0 flex items-center justify-center text-xs font-black text-white drop-shadow"><span id="w-lbl-1" style="transform: rotate(90deg) translateY(-85px)">--</span></div>
+                                <div class="absolute inset-0 flex items-center justify-center text-xs font-black text-white drop-shadow"><span id="w-lbl-2" style="transform: rotate(150deg) translateY(-85px)">--</span></div>
+                                <div class="absolute inset-0 flex items-center justify-center text-xs font-black text-white drop-shadow"><span id="w-lbl-3" style="transform: rotate(210deg) translateY(-85px)">--</span></div>
+                                <div class="absolute inset-0 flex items-center justify-center text-xs font-black text-white drop-shadow"><span id="w-lbl-4" style="transform: rotate(270deg) translateY(-85px)">--</span></div>
+                                <div class="absolute inset-0 flex items-center justify-center text-xs font-black text-white drop-shadow"><span id="w-lbl-5" style="transform: rotate(330deg) translateY(-85px)">--</span></div>
+                                <div class="w-14 h-14 rounded-full bg-black border-2 border-gold-400 flex items-center justify-center text-gold-400 font-black text-sm z-10">VIP</div>
+                            </div>
+                        </div>
+                        <div id="wheel-result-label" class="text-sm font-bold text-yellow-300 h-6">Chọn mức tiền cược để xem phần thưởng trên vòng quay!</div>
+                        <button onclick="spinWheel()" id="btn-wheel-spin" class="gold-btn w-full py-3.5 rounded-xl font-bold uppercase">XOAY VÒNG QUAY (${selectedChip.toLocaleString('vi-VN')}đ)</button>
+                    </div>
+                </div>
+            `;
+            updateWheelLabels();
+        }
+
+        function updateWheelLabels() {
+            for(let i=0; i<6; i++) {
+                let lbl = document.getElementById(`w-lbl-${i}`);
+                if(lbl) {
+                    let val = selectedChip * WHEEL_MULTS[i];
+                    if (val >= 1000000) lbl.innerText = (val / 1000000) + 'tr';
+                    else lbl.innerText = (val / 1000) + 'k';
+                }
+            }
+        }
+
+        function spinWheel() {
+            if (isPlayingAnim) return;
+            if (currentUser.balance < selectedChip) return showToast('Không đủ tiền!');
+            isPlayingAnim = true; currentUser.balance -= selectedChip; saveUser();
+            document.getElementById('btn-wheel-spin').innerText = "ĐANG XOAY...";
+            
+            const sectors = [
+                { label: '0.1x', mult: 0.1, angle: 30 },
+                { label: '0.2x', mult: 0.2, angle: 90 },
+                { label: '0.5x', mult: 0.5, angle: 150 },
+                { label: '1x', mult: 1, angle: 210 },
+                { label: '2x', mult: 2, angle: 270 },
+                { label: '5x', mult: 5, angle: 330 }
+            ];
+
+            let rand = Math.random();
+            let target = sectors[0];
+            if(rand < 0.45) target = sectors[0];
+            else if(rand < 0.75) target = sectors[1];
+            else if(rand < 0.88) target = sectors[2];
+            else if(rand < 0.95) target = sectors[3];
+            else if(rand < 0.99) target = sectors[4];
+            else target = sectors[5];
+
+            const extraRounds = 5 * 360; 
+            const targetAngle = 360 - target.angle; 
+            currentWheelAngle += extraRounds + targetAngle - (currentWheelAngle % 360);
+
+            const disc = document.getElementById('wheel-disc-element');
+            disc.style.transform = `rotate(${currentWheelAngle}deg)`;
+
+            setTimeout(() => {
+                let winAmt = Math.floor(selectedChip * target.mult);
+                document.getElementById('wheel-result-label').innerText = `Trúng thưởng: ${winAmt.toLocaleString('vi-VN')}đ`;
+                currentUser.balance += winAmt; saveUser(); 
+                showToast(`🎉 Trúng thưởng ${winAmt.toLocaleString('vi-VN')}đ!`, true); 
+                recordOfflineHistory('Vòng Quay', target.label, selectedChip, `Trúng ${target.label}`, winAmt);
+                updateOfflineButtonLabels();
+                isPlayingAnim = false;
+            }, 3500);
+        }
+
+        // --- 8. POKER MINI (OFFLINE) ---
+        let pokerState = { dealt: false, cards: [] };
+        function initPoker(container) {
+            pokerState = { dealt: false, cards: [] };
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="bg-casino-card border-2 border-gold-500/50 rounded-2xl p-6 w-full text-center space-y-4">
+                        <div class="text-xs text-yellow-300 font-bold">1. Chọn chip -> 2. Bấm Chia Bài -> 3. Chạm từng lá để lật!</div>
+                        <div id="poker-hand" class="flex justify-center space-x-2 my-4">
+                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
+                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
+                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
+                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
+                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
+                        </div>
+                        <button onclick="dealPokerCards()" id="btn-poker-deal" class="gold-btn w-full py-3.5 rounded-xl font-bold uppercase">CHIA BÀI POKER (${selectedChip.toLocaleString('vi-VN')}đ)</button>
+                    </div>
+                </div>
+            `;
+        }
+        function dealPokerCards() {
+            if (currentUser.balance < selectedChip) return showToast('Không đủ tiền!');
+            currentUser.balance -= selectedChip; saveUser();
+            pokerState.dealt = true;
+
+            const ranks = ['10', 'J', 'Q', 'K', 'A'];
+            const handBox = document.getElementById('poker-hand');
+            handBox.innerHTML = ranks.map((r, i) => `
+                <div class="playing-card-container" onclick="flipPokerCard(this, ${i})">
+                    <div class="playing-card-inner">
+                        <div class="card-face card-back"></div>
+                        <div class="card-face card-front ${i%2===0?'red':''}"><span>${r}</span></div>
+                    </div>
+                </div>
+            `).join('');
+
+            let winAmt = Math.floor(selectedChip * 2.5);
+            currentUser.balance += winAmt; saveUser();
+            showToast(`🎉 Đã chia bài thành công! Bấm lật bài nhận +${winAmt.toLocaleString('vi-VN')}đ!`, true);
+            recordOfflineHistory('Poker Mini', 'Đã chia', selectedChip, 'Thắng bài', winAmt);
+        }
+        function flipPokerCard(el, idx) {
+            if (!pokerState.dealt) return showToast('Vui lòng bấm Chia Bài trước!');
+            el.classList.add('flipped'); AudioEngine.playClick();
+        }
+
+        // --- 9. MÁY BAY CRASH ---
+        let crashGame = { state: 'WAITING', rate: 1.00, crashRate: 1.50, countdown: 5, history: ['1.2x', '1.89x', '1.05x', '2.1x', '1.15x'] };
+        let crashLoopInterval = null;
+        let userCrashBet = { active: false, betAmt: 0, cashedOut: false };
+
+        function initCrash(container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="w-full bg-black/60 p-2 rounded-xl border border-gold-500/30 flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-yellow-300">LỊCH SỬ PHIÊN:</span>
+                        <div id="crash-history-dots" class="flex space-x-1.5 overflow-x-auto"></div>
+                    </div>
+                    <div class="flex items-center justify-between w-full bg-casino-card border border-gold-500/30 px-4 py-2 rounded-xl">
+                        <div class="text-xs text-gray-300 font-bold">TRẠNG THÁI: <span id="crash-status" class="text-yellow-400">ĐANG CHỜ</span></div>
+                        <div class="text-xl font-extrabold text-gold-400 font-digits" id="crash-timer">--s</div>
+                    </div>
+                    <div class="bg-sky-950 border-2 border-gold-500/50 rounded-2xl p-6 w-full text-center space-y-4 relative overflow-hidden h-64 flex flex-col justify-between items-center shadow-2xl">
+                        <div class="absolute inset-0 flex items-center justify-center opacity-20"><i class="fa-solid fa-cloud text-9xl text-white"></i></div>
+                        <div class="relative z-10 text-5xl font-black text-cyan-400 font-digits" id="crash-rate">1.00x</div>
+                        <div class="relative z-10 my-auto w-full flex justify-center">
+                            <i id="plane-icon" class="fa-solid fa-plane-departure text-5xl text-yellow-300 transition-all duration-200"></i>
+                        </div>
+                        <div class="w-full flex space-x-2 relative z-10">
+                            <button onclick="placeCrashBet()" id="btn-crash-bet" class="gold-btn w-1/2 py-3 rounded-xl font-bold uppercase">CƯỢC (${selectedChip.toLocaleString('vi-VN')}đ)</button>
+                            <button onclick="cashOutCrash()" id="btn-crash-cashout" class="bg-emerald-600 text-white font-bold w-1/2 py-3 rounded-xl uppercase opacity-50 cursor-not-allowed">CHỐT LỜI</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            renderCrashHistoryUI();
+            if(crashLoopInterval) clearInterval(crashLoopInterval);
+            startCrashEngine();
+        }
+
+        function renderCrashHistoryUI() {
+            const dotsBox = document.getElementById('crash-history-dots');
+            if(dotsBox) {
+                dotsBox.innerHTML = crashGame.history.map(val => `<span class="px-2 py-0.5 rounded-full bg-blue-900 border border-cyan-400 text-cyan-300 text-[10px] font-bold font-digits">${val}</span>`).join('');
+            }
+        }
+
+        function generateRandomCrashTarget() {
+            let r = Math.random();
+            if(r < 0.75) return parseFloat((1.01 + Math.random() * 0.5).toFixed(2));
+            if(r < 0.95) return parseFloat((1.60 + Math.random() * 1.0).toFixed(2));
+            return parseFloat((3.00 + Math.random() * 3.0).toFixed(2));
+        }
+
+        function startCrashEngine() {
+            crashGame.state = 'WAITING';
+            crashGame.countdown = 5;
+            crashGame.rate = 1.00;
+            crashGame.crashRate = generateRandomCrashTarget();
+            userCrashBet = { active: false, betAmt: 0, cashedOut: false };
+
+            crashLoopInterval = setInterval(() => {
+                if(currentGame !== 'crash') return;
+
+                const statusEl = document.getElementById('crash-status'), timerEl = document.getElementById('crash-timer'), rateEl = document.getElementById('crash-rate'), planeEl = document.getElementById('plane-icon'), btnCash = document.getElementById('btn-crash-cashout');
+
+                if(crashGame.state === 'WAITING') {
+                    statusEl.innerText = "CHUẨN BỊ BAY...";
+                    timerEl.innerText = crashGame.countdown + 's';
+                    rateEl.innerText = "1.00x";
+                    if(planeEl) { planeEl.className = "fa-solid fa-plane-departure text-5xl text-yellow-300"; planeEl.style.transform = "translateY(0px)"; }
+                    if(btnCash) btnCash.className = "bg-emerald-600 text-white font-bold w-1/2 py-3 rounded-xl uppercase opacity-50 cursor-not-allowed";
+
+                    crashGame.countdown--;
+                    if(crashGame.countdown < 0) {
+                        crashGame.state = 'FLYING';
+                    }
+                } else if(crashGame.state === 'FLYING') {
+                    statusEl.innerText = "MÁY BAY ĐANG BAY...";
+                    timerEl.innerText = "BAY";
+                    crashGame.rate = parseFloat((crashGame.rate + 0.04 + Math.random()*0.02).toFixed(2));
+                    rateEl.innerText = crashGame.rate + 'x';
+                    
+                    if(planeEl) {
+                        planeEl.className = "fa-solid fa-plane text-5xl text-yellow-300 animate-pulse";
+                        let offsetY = Math.min(60, Math.floor((crashGame.rate - 1) * 20));
+                        planeEl.style.transform = `translateY(-${offsetY}px) rotate(-15deg)`;
+                    }
+
+                    if(btnCash && userCrashBet.active && !userCrashBet.cashedOut) {
+                        btnCash.className = "bg-emerald-500 hover:bg-emerald-400 text-white font-black w-1/2 py-3 rounded-xl uppercase shadow-lg animate-bounce";
+                    }
+
+                    if(crashGame.rate >= crashGame.crashRate) {
+                        crashGame.state = 'CRASHED';
+                        statusEl.innerText = "MÁY BAY BỐC CHÁY!";
+                        rateEl.innerText = `CRASH (${crashGame.crashRate}x)`;
+                        if(planeEl) { planeEl.className = "fa-solid fa-burst text-5xl text-red-500 animate-ping"; planeEl.style.transform = "none"; }
+                        if(btnCash) btnCash.className = "bg-emerald-600 text-white font-bold w-1/2 py-3 rounded-xl uppercase opacity-50 cursor-not-allowed";
+
+                        crashGame.history.unshift(crashGame.crashRate + 'x');
+                        if(crashGame.history.length > 10) crashGame.history.pop();
+                        renderCrashHistoryUI();
+
+                        if(userCrashBet.active && !userCrashBet.cashedOut) {
+                            showToast('Máy bay nổ! Bạn đã mất tiền cược.');
+                            recordBetHistory('crash', 'Máy Bay', `${crashGame.crashRate}x`, userCrashBet.betAmt, 'LOSE', 0);
+                        }
+
+                        setTimeout(() => {
+                            crashGame.state = 'WAITING';
+                            crashGame.countdown = 5;
+                            crashGame.rate = 1.00;
+                            crashGame.crashRate = generateRandomCrashTarget();
+                            userCrashBet = { active: false, betAmt: 0, cashedOut: false };
+                            updateOfflineButtonLabels();
+                        }, 3000);
+                    }
+                }
+            }, 300);
+        }
+
+        function placeCrashBet() {
+            if (crashGame.state !== 'WAITING') return showToast('Máy bay đang bay, đợi phiên tiếp theo!');
+            if (userCrashBet.active) return showToast('Đã đặt cược rồi!');
+            if (currentUser.balance < selectedChip) return showToast('Số dư không đủ!');
+            currentUser.balance -= selectedChip; saveUser();
+            userCrashBet = { active: true, betAmt: selectedChip, cashedOut: false };
+            showToast('Đặt cược máy bay thành công!');
+            document.getElementById('btn-crash-bet').innerText = "ĐÃ CƯỢC";
+        }
+
+        function cashOutCrash() {
+            if (crashGame.state !== 'FLYING') return showToast('Máy bay chưa cất cánh!');
+            if (!userCrashBet.active || userCrashBet.cashedOut) return showToast('Không có khoản cược nào!');
+            
+            userCrashBet.cashedOut = true;
+            let winAmt = Math.floor(userCrashBet.betAmt * crashGame.rate);
+            currentUser.balance += winAmt; saveUser();
+            showToast(`🎉 Chốt lời thành công +${winAmt.toLocaleString('vi-VN')}đ (${crashGame.rate}x)!`, true);
+            recordBetHistory('crash', 'Máy Bay', `${crashGame.rate}x`, userCrashBet.betAmt, 'WIN', winAmt);
+        }
+
+        // --- 10. XỔ SỐ LÔ ĐỀ (OFFLINE) ---
+        function initLoDe(container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="bg-casino-card border-2 border-gold-500/50 rounded-2xl p-6 w-full text-center space-y-4">
+                        <div class="flex justify-center space-x-2">
+                            <button onclick="setLoDeType(2)" id="ld-btn-2" class="px-3 py-1 bg-gold-500 text-black font-bold text-xs rounded-lg">2 SỐ (x70)</button>
+                            <button onclick="setLoDeType(3)" id="ld-btn-3" class="px-3 py-1 bg-gray-800 text-white font-bold text-xs rounded-lg">3 SỐ (x400)</button>
+                            <button onclick="setLoDeType(4)" id="ld-btn-4" class="px-3 py-1 bg-gray-800 text-white font-bold text-xs rounded-lg">4 SỐ (x3000)</button>
+                        </div>
+                        <input type="number" id="lode-num" placeholder="Nhập số dự đoán" class="w-full bg-black/70 border border-gold-500/40 rounded-xl px-4 py-2.5 text-center text-yellow-300 font-bold text-lg focus:outline-none">
+                        <div id="lode-digits-display" class="flex justify-center space-x-2 text-4xl font-bold text-emerald-400 font-digits my-2">
+                            <span class="w-10 h-14 bg-black border border-gold-400 rounded flex items-center justify-center">-</span>
+                            <span class="w-10 h-14 bg-black border border-gold-400 rounded flex items-center justify-center">-</span>
+                        </div>
+                        <button onclick="playLoDeRound()" id="btn-lode-play" class="gold-btn w-full py-3.5 rounded-xl font-bold uppercase">QUAY LÔ ĐỀ (${selectedChip.toLocaleString('vi-VN')}đ)</button>
+                    </div>
+                </div>
+            `;
+        }
+        let selectedLodeType = 2;
+        function setLoDeType(type) {
+            selectedLodeType = type;
+            document.getElementById('ld-btn-2').className = type===2 ? "px-3 py-1 bg-gold-500 text-black font-bold text-xs rounded-lg" : "px-3 py-1 bg-gray-800 text-white font-bold text-xs rounded-lg";
+            document.getElementById('ld-btn-3').className = type===3 ? "px-3 py-1 bg-gold-500 text-black font-bold text-xs rounded-lg" : "px-3 py-1 bg-gray-800 text-white font-bold text-xs rounded-lg";
+            document.getElementById('ld-btn-4').className = type===4 ? "px-3 py-1 bg-gold-500 text-black font-bold text-xs rounded-lg" : "px-3 py-1 bg-gray-800 text-white font-bold text-xs rounded-lg";
+            
+            let boxes = ''; for(let i=0; i<type; i++) boxes += `<span class="w-10 h-14 bg-black border border-gold-400 rounded flex items-center justify-center">-</span>`;
+            document.getElementById('lode-digits-display').innerHTML = boxes;
+        }
+        function playLoDeRound() {
+            if (isPlayingAnim) return;
+            if (currentUser.balance < selectedChip) return showToast('Không đủ tiền!');
+            const inputVal = document.getElementById('lode-num').value.trim();
+            if (inputVal.length !== selectedLodeType) return showToast(`Vui lòng nhập đúng ${selectedLodeType} chữ số!`);
+
+            isPlayingAnim = true; currentUser.balance -= selectedChip; saveUser();
+            document.getElementById('btn-lode-play').innerText = "ĐANG QUAY SỐ...";
+
+            const displayBox = document.getElementById('lode-digits-display');
+            let resDigits = [];
+            for(let i=0; i<selectedLodeType; i++) resDigits.push(Math.floor(Math.random()*10));
+
+            for(let i=0; i<selectedLodeType; i++) {
+                setTimeout(() => {
+                    const spans = displayBox.querySelectorAll('span');
+                    if(spans[i]) spans[i].innerText = resDigits[i];
+                    AudioEngine.playClick();
+                }, (i+1)*800);
+            }
+
+            setTimeout(() => {
+                const finalStr = resDigits.join('');
+                if(finalStr === inputVal) {
+                    let mult = selectedLodeType === 2 ? 70 : (selectedLodeType === 3 ? 400 : 3000);
+                    let winAmt = selectedChip * mult; currentUser.balance += winAmt; saveUser();
+                    showToast(`🎉 CHÚC MỪNG! Trúng lô ${finalStr} (+${winAmt.toLocaleString('vi-VN')}đ)!`, true);
+                    recordOfflineHistory('Lô Đề', `Số ${inputVal}`, selectedChip, `Về ${finalStr}`, winAmt);
+                } else {
+                    showToast(`Kết quả về: ${finalStr}. Chúc bạn may mắn lần sau!`);
+                    recordOfflineHistory('Lô Đề', `Số ${inputVal}`, selectedChip, `Về ${finalStr}`, 0);
+                }
+                updateOfflineButtonLabels();
+                isPlayingAnim = false;
+            }, selectedLodeType * 800 + 400);
+        }
+
+        // --- 11. LIÊNG 3 LÁ (OFFLINE) ---
+        let liengState = { dealt: false };
+        function initLieng(container) {
+            liengState = { dealt: false };
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="bg-casino-card border-2 border-gold-500/50 rounded-2xl p-6 w-full text-center space-y-4">
+                        <div class="text-xs text-yellow-300 font-bold">1. Chọn chip -> 2. Tố bài -> 3. Chạm để lật bài!</div>
+                        <div id="lieng-cards" class="flex justify-center space-x-2 my-4">
+                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
+                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
+                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
+                        </div>
+                        <button onclick="playLiengRound()" id="btn-lieng-play" class="gold-btn w-full py-3.5 rounded-xl font-bold uppercase">TỐ LIÊNG (${selectedChip.toLocaleString('vi-VN')}đ)</button>
+                    </div>
+                </div>
+            `;
+        }
+        function playLiengRound() {
+            if (currentUser.balance < selectedChip) return showToast('Không đủ tiền!');
+            currentUser.balance -= selectedChip; saveUser();
+            liengState.dealt = true;
+
+            const cardsBox = document.getElementById('lieng-cards');
+            cardsBox.innerHTML = `
+                <div class="playing-card-container" onclick="this.classList.add('flipped')"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front red">9</div></div></div>
+                <div class="playing-card-container" onclick="this.classList.add('flipped')"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">J</div></div></div>
+                <div class="playing-card-container" onclick="this.classList.add('flipped')"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front red">Q</div></div></div>
+            `;
+
+            let winAmt = selectedChip * 3; currentUser.balance += winAmt; saveUser();
+            showToast(`🎉 Tố Liêng thành công! Lật bài nhận +${winAmt.toLocaleString('vi-VN')}đ!`, true);
+            recordOfflineHistory('Liêng 3 Lá', 'Tố cược', selectedChip, 'Thắng Liêng', winAmt);
+        }
+
+        // --- 12. BẮN CÁ ĐẠI DƯƠNG ---
+        const FISH_TYPES = [
+            { id: 1, name: 'Cá Tép', icon: 'fa-shrimp', color: 'text-amber-300', size: 'text-2xl', mult: 2, maxHp: 1, speed: 2.2 },
+            { id: 2, name: 'Cá Nhỏ', icon: 'fa-fish', color: 'text-cyan-400', size: 'text-3xl', mult: 5, maxHp: 2, speed: 1.8 },
+            { id: 3, name: 'Cá Hề', icon: 'fa-fish-fins', color: 'text-yellow-400', size: 'text-4xl', mult: 10, maxHp: 4, speed: 1.4 },
+            { id: 4, name: 'Cá Mập', icon: 'fa-shield-halved', color: 'text-purple-400', size: 'text-5xl', mult: 20, maxHp: 8, speed: 1.0 },
+            { id: 5, name: 'Cá Rồng', icon: 'fa-dragon', color: 'text-rose-500', size: 'text-6xl', mult: 50, maxHp: 15, speed: 0.8 }
+        ];
+
+        let activeFishes = [];
+        let fishInterval = null;
+        let bulletPower = 1;
+
+        function initSanCa(container) {
+            activeFishes = [];
+            bulletPower = 1;
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="bg-cyan-950 border-2 border-gold-500/50 rounded-2xl p-4 w-full text-center space-y-3">
+                        <div class="flex justify-between items-center text-xs text-cyan-300 font-bold border-b border-cyan-800 pb-2">
+                            <span>Đạn: <strong class="text-yellow-300 font-digits text-sm" id="fish-bullet-cost">${(selectedChip * bulletPower).toLocaleString('vi-VN')}đ</strong></span>
+                            <div class="flex space-x-1">
+                                <span class="text-gray-300">Cấp đạn:</span>
+                                <button onclick="setBulletPower(1)" id="bp-1" class="px-2 py-0.5 bg-gold-500 text-black font-black rounded text-[10px]">x1</button>
+                                <button onclick="setBulletPower(2)" id="bp-2" class="px-2 py-0.5 bg-gray-800 text-white font-bold rounded text-[10px]">x2</button>
+                                <button onclick="setBulletPower(3)" id="bp-3" class="px-2 py-0.5 bg-gray-800 text-white font-bold rounded text-[10px]">x3</button>
+                                <button onclick="setBulletPower(5)" id="bp-5" class="px-2 py-0.5 bg-gray-800 text-white font-bold rounded text-[10px]">x5</button>
+                            </div>
+                        </div>
+                        
+                        <div class="w-full h-64 bg-gradient-to-b from-blue-950 via-cyan-950 to-black rounded-xl border-2 border-cyan-400 relative overflow-hidden shadow-inner cursor-crosshair" id="ocean-tank"></div>
+
+                        <div class="grid grid-cols-5 gap-1 text-[10px] bg-black/60 p-2 rounded-xl border border-cyan-500/30">
+                            <div class="text-amber-300"><i class="fa-solid fa-shrimp"></i> x2</div>
+                            <div class="text-cyan-400"><i class="fa-solid fa-fish"></i> x5</div>
+                            <div class="text-yellow-400"><i class="fa-solid fa-fish-fins"></i> x10</div>
+                            <div class="text-purple-400"><i class="fa-solid fa-shield-halved"></i> x20</div>
+                            <div class="text-rose-500"><i class="fa-solid fa-dragon"></i> x50</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (fishInterval) clearInterval(fishInterval);
+            spawnInitialFishes();
+            fishInterval = setInterval(updateFishGame, 50);
+        }
+
+        function setBulletPower(pow) {
+            bulletPower = pow;
+            for(let p of [1,2,3,5]) {
+                const btn = document.getElementById(`bp-${p}`);
+                if(btn) btn.className = p === pow ? "px-2 py-0.5 bg-gold-500 text-black font-black rounded text-[10px]" : "px-2 py-0.5 bg-gray-800 text-white font-bold rounded text-[10px]";
+            }
+            const costEl = document.getElementById('fish-bullet-cost');
+            if(costEl) costEl.innerText = (selectedChip * bulletPower).toLocaleString('vi-VN') + 'đ';
+        }
+
+        function spawnInitialFishes() {
+            for(let i=0; i<7; i++) { spawnOneFish(); }
+        }
+
+        function spawnOneFish() {
+            const typeObj = FISH_TYPES[Math.floor(Math.random() * FISH_TYPES.length)];
+            const fish = {
+                uid: 'FISH_' + Math.random().toString(36).substr(2, 9),
+                type: typeObj,
+                x: -50 - Math.random() * 80,
+                y: Math.floor(Math.random() * 170) + 10,
+                hp: typeObj.maxHp
+            };
+            activeFishes.push(fish);
+        }
+
+        function updateFishGame() {
+            const tank = document.getElementById('ocean-tank');
+            if(!tank) return;
+
+            if(activeFishes.length < 7 && Math.random() < 0.15) { spawnOneFish(); }
+
+            let html = '';
+            for(let i = activeFishes.length - 1; i >= 0; i--) {
+                let f = activeFishes[i];
+                f.x += f.type.speed;
+
+                if(f.x > tank.clientWidth + 50) {
+                    activeFishes.splice(i, 1);
+                    continue;
+                }
+
+                html += `
+                    <div onclick="shootTargetFish(event, '${f.uid}')" class="fish-target flex flex-col items-center" style="left: ${f.x}px; top: ${f.y}px;">
+                        <i class="fa-solid ${f.type.icon} ${f.type.color} ${f.type.size} drop-shadow-md"></i>
+                        <span class="text-[9px] bg-black/80 px-1 rounded text-yellow-300 font-bold border border-gold-500/30">HP: ${f.hp}/${f.type.maxHp}</span>
+                    </div>
+                `;
+            }
+            tank.innerHTML = html;
+        }
+
+        function shootTargetFish(event, uid) {
+            if(event) event.stopPropagation();
+            let shotCost = selectedChip * bulletPower;
+            if (currentUser.balance < shotCost) return showToast('Không đủ tiền bắn đạn!');
+            currentUser.balance -= shotCost; saveUser();
+            AudioEngine.playClick();
+
+            const targetIdx = activeFishes.findIndex(f => f.uid === uid);
+            if(targetIdx !== -1) {
+                activeFishes[targetIdx].hp -= bulletPower;
+
+                if(activeFishes[targetIdx].hp <= 0) {
+                    let deadFish = activeFishes[targetIdx];
+                    let winAmt = shotCost * deadFish.type.mult;
+                    currentUser.balance += winAmt; saveUser();
+                    AudioEngine.playWin();
+                    showToast(`🎉 HẠ GỤC ${deadFish.type.name}! Thu về +${winAmt.toLocaleString('vi-VN')}đ!`, true);
+                    recordOfflineHistory('Bắn Cá', `Hạ ${deadFish.type.name}`, shotCost, 'Bắn trúng', winAmt);
+                    
+                    activeFishes.splice(targetIdx, 1);
+                    spawnOneFish();
+                }
+            }
+        }
+
+        // --- 13. KENO 24/7 ---
+        let userKenoBets = { roundId: -1, OVER: 0, UNDER: 0, processed: false };
+        function initKeno(container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
+                    <div class="w-full bg-black/60 p-2 rounded-xl border border-gold-500/30 flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-yellow-300">LỊCH SỬ PHIÊN:</span>
+                        <div id="keno-history-dots" class="flex space-x-1.5 overflow-x-auto"></div>
+                    </div>
+                    <div class="flex items-center justify-between w-full bg-casino-card border border-gold-500/30 px-4 py-2 rounded-xl">
+                        <div class="text-xs text-gray-300 font-bold">TRẠNG THÁI: <span id="keno-status" class="text-yellow-400">ĐẶT CƯỢC</span></div>
+                        <div class="text-xl font-extrabold text-gold-400 font-digits" id="keno-timer">--s</div>
+                    </div>
+                    <div class="bg-casino-card border-2 border-gold-500/50 rounded-2xl p-6 w-full text-center space-y-4">
+                        <div id="keno-num-display" class="text-5xl font-black text-fuchsia-400 font-digits transition-all duration-100">?</div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="placeKenoBet('OVER')" class="bg-fuchsia-900/80 border border-fuchsia-400 p-3 rounded-xl">
+                                <div class="font-bold text-xs text-fuchsia-200">LỚN HƠN 50 (x1.95)</div>
+                                <div class="text-xs font-digits text-yellow-300"><span id="keno-bet-OVER">0</span>đ</div>
+                            </button>
+                            <button onclick="placeKenoBet('UNDER')" class="bg-indigo-900/80 border border-indigo-400 p-3 rounded-xl">
+                                <div class="font-bold text-xs text-indigo-200">NHỎ HƠN 50 (x1.95)</div>
+                                <div class="text-xs font-digits text-yellow-300"><span id="keno-bet-UNDER">0</span>đ</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        function placeKenoBet(side) {
+            const st = getGlobalRoundState(40, 30);
+            if (st.phase !== 'BETTING') return showToast('Hết thời gian cược 30s!');
+            if (userKenoBets.roundId !== st.roundId) { userKenoBets = { roundId: st.roundId, OVER: 0, UNDER: 0, processed: false }; }
+            const otherSide = side === 'OVER' ? 'UNDER' : 'OVER';
+            if (userKenoBets[otherSide] > 0) return showToast('Chỉ được cược 1 bên!');
+            if (currentUser.balance < selectedChip) return showToast('Không đủ tiền!');
+            AudioEngine.playClick(); currentUser.balance -= selectedChip; saveUser();
+            userKenoBets[side] += selectedChip; document.getElementById(`keno-bet-${side}`).innerText = userKenoBets[side].toLocaleString('vi-VN');
+        }
+
+        // --- REALTIME LOOP CHÍNH ---
+        setInterval(() => {
+            updateUserUI();
+
+            // TÀI XỈU 24/7
+            if (currentGame === 'taixiu') {
+                const st = getGlobalRoundState(40, 30);
+                document.getElementById('round-id-display').innerText = `Phiên: #${st.roundId}`;
+                document.getElementById('tx-timer').innerText = st.timeLeft + 's';
+                const hist = getHistoryRounds('taixiu', st.roundId), dotsBox = document.getElementById('tx-history-dots');
+                if (dotsBox) {
+                    dotsBox.innerHTML = hist.map(h => {
+                        const sum = h.res.reduce((a,b)=>a+b, 0), isTai = sum >= 11;
+                        return `<div class="w-5 h-5 rounded-full ${isTai?'bg-red-600':'bg-blue-600'} text-white text-[9px] font-bold flex items-center justify-center">${isTai?'T':'X'}</div>`;
+                    }).join('');
+                }
+                const bowl = document.getElementById('tx-bowl'), res = getGlobalGameResult('taixiu', st.roundId);
+                document.getElementById('tx-d1').innerHTML = renderDiceFaceHTML(res[0]);
+                document.getElementById('tx-d2').innerHTML = renderDiceFaceHTML(res[1]);
+                document.getElementById('tx-d3').innerHTML = renderDiceFaceHTML(res[2]);
+
+                if (st.phase === 'BETTING') {
+                    bowlOpened = false;
+                    if (bowl && bowl.classList.contains('hidden')) bowl.classList.remove('hidden');
+                    if (bowl) bowl.style.transform = 'translate3d(0,0,0)';
+                    document.getElementById('tx-status').innerText = "ĐANG ĐẶT CƯỢC";
+                } else if (st.phase === 'SQUEEZING') {
+                    const sum = res.reduce((a,b)=>a+b, 0), winSide = sum >= 11 ? 'TAI' : 'XIU';
+                    if (!bowlOpened && bowl && !bowl.classList.contains('hidden')) {
+                        document.getElementById('tx-status').innerText = "ĐANG NẶN ĐĨA...";
+                    } else {
+                        document.getElementById('tx-status').innerText = `KẾT QUẢ: ${winSide} (${sum}đ)`;
+                        checkTXReward();
+                    }
+                }
+            }
+
+            // XÓC ĐĨA 24/7
+            if (currentGame === 'xocdia') {
+                const st = getGlobalRoundState(40, 30);
+                document.getElementById('round-id-display').innerText = `Phiên: #${st.roundId}`;
+                document.getElementById('xd-timer').innerText = st.timeLeft + 's';
+                const hist = getHistoryRounds('xocdia', st.roundId), dotsBox = document.getElementById('xd-history-dots');
+                if (dotsBox) {
+                    dotsBox.innerHTML = hist.map(h => {
+                        const reds = h.res.filter(r => r === 1).length, isChan = reds % 2 === 0;
+                        return `<div class="w-5 h-5 rounded-full ${isChan?'bg-red-600':'bg-gray-300 text-black'} text-[9px] font-bold flex items-center justify-center">${isChan?'C':'L'}</div>`;
+                    }).join('');
+                }
+                const bowl = document.getElementById('xd-bowl'), res = getGlobalGameResult('xocdia', st.roundId);
+                for (let i = 0; i < 4; i++) {
+                    const chip = document.getElementById(`xd-c${i+1}`);
+                    if (chip) chip.className = res[i] === 1 ? "w-6 h-6 rounded-full bg-red-600 border border-white" : "w-6 h-6 rounded-full bg-white border border-gray-400";
+                }
+
+                if (st.phase === 'BETTING') {
+                    bowlOpened = false;
+                    if (bowl && bowl.classList.contains('hidden')) bowl.classList.remove('hidden');
+                    if (bowl) bowl.style.transform = 'translate3d(0,0,0)';
+                    document.getElementById('xd-status').innerText = "ĐANG ĐẶT CƯỢC";
+                } else if (st.phase === 'SQUEEZING') {
+                    const reds = res.filter(r => r === 1).length, winSide = reds % 2 === 0 ? 'CHAN' : 'LE';
+                    if (!bowlOpened && bowl && !bowl.classList.contains('hidden')) {
+                        document.getElementById('xd-status').innerText = "ĐANG NẶN ĐĨA...";
+                    } else {
+                        document.getElementById('xd-status').innerText = `KẾT QUẢ: ${reds} ĐỎ (${winSide})`;
+                        checkXDReward();
+                    }
+                }
+            }
+
+            // BẦU CUA 24/7
+            if (currentGame === 'baucua') {
+                const st = getGlobalRoundState(40, 30);
+                document.getElementById('round-id-display').innerText = `Phiên: #${st.roundId}`;
+                document.getElementById('bc-timer').innerText = st.timeLeft + 's';
+                const bowl = document.getElementById('bc-bowl'), res = getGlobalGameResult('baucua', st.roundId);
+                
+                const bcNames = ['Bầu', 'Cua', 'Tôm', 'Cá', 'Gà', 'Nai'];
+                document.getElementById('bc-d1').innerText = bcNames[res[0]];
+                document.getElementById('bc-d2').innerText = bcNames[res[1]];
+                document.getElementById('bc-d3').innerText = bcNames[res[2]];
+
+                if (st.phase === 'BETTING') {
+                    bowlOpened = false;
+                    if (bowl && bowl.classList.contains('hidden')) bowl.classList.remove('hidden');
+                    if (bowl) bowl.style.transform = 'translate3d(0,0,0)';
+                    document.getElementById('bc-status').innerText = "ĐANG ĐẶT CƯỢC";
+                } else if (st.phase === 'SQUEEZING') {
+                    if (!bowlOpened && bowl && !bowl.classList.contains('hidden')) {
+                        document.getElementById('bc-status').innerText = "ĐANG NẶN ĐĨA...";
+                    } else {
+                        document.getElementById('bc-status').innerText = `KẾT QUẢ: ${bcNames[res[0]]}, ${bcNames[res[1]]}, ${bcNames[res[2]]}`;
+                        checkBcReward();
+                    }
+                }
+            }
+
+            // BACCARAT 24/7
+            if (currentGame === 'baccarat') {
+                const st = getGlobalRoundState(40, 30);
+                document.getElementById('round-id-display').innerText = `Phiên: #${st.roundId}`;
+                document.getElementById('bac-timer').innerText = st.timeLeft + 's';
+                const hist = getHistoryRounds('baccarat', st.roundId), dotsBox = document.getElementById('bac-history-dots');
+                if (dotsBox) {
+                    dotsBox.innerHTML = hist.map(h => {
+                        const pScore = (h.res.p1 + h.res.p2) % 10, bScore = (h.res.b1 + h.res.b2) % 10;
+                        let code = pScore > bScore ? 'P' : (bScore > pScore ? 'B' : 'T'), col = pScore > bScore ? 'bg-blue-600' : (bScore > pScore ? 'bg-red-600' : 'bg-emerald-600');
+                        return `<div class="w-5 h-5 rounded-full ${col} text-white text-[9px] font-bold flex items-center justify-center">${code}</div>`;
+                    }).join('');
+                }
+                const bowl = document.getElementById('bac-bowl'), res = getGlobalGameResult('baccarat', st.roundId);
+                const pScore = (res.p1 + res.p2) % 10, bScore = (res.b1 + res.b2) % 10;
+
+                if (st.phase === 'BETTING') {
+                    bowlOpened = false;
+                    if (bowl) bowl.classList.add('hidden');
+                    document.getElementById('bac-status').innerText = "ĐANG ĐẶT CƯỢC";
+                    document.getElementById('bac-p1').innerText = "🂠"; document.getElementById('bac-p2').innerText = "🂠";
+                    document.getElementById('bac-b1').innerText = "🂠"; document.getElementById('bac-b2').innerText = "🂠";
+                    document.getElementById('bac-player-score').innerText = "?";
+                    document.getElementById('bac-banker-score').innerText = "?";
+                } else {
+                    if (!bowlOpened && bowl) bowl.classList.remove('hidden');
+                    document.getElementById('bac-p1').innerText = res.p1; document.getElementById('bac-p2').innerText = res.p2;
+                    document.getElementById('bac-b1').innerText = res.b1; document.getElementById('bac-b2').innerText = res.b2;
+
+                    if (!bowlOpened && bowl && !bowl.classList.contains('hidden')) {
+                        document.getElementById('bac-status').innerText = "ĐANG NẶN BÀI...";
+                    } else {
+                        document.getElementById('bac-status').innerText = "KẾT QUẢ PHIÊN";
+                        document.getElementById('bac-player-score').innerText = pScore;
+                        document.getElementById('bac-banker-score').innerText = bScore;
+                        checkBacReward();
+                    }
+                }
+            }
+
+            // RỒNG HỔ 24/7
+            if (currentGame === 'dragon') {
+                const st = getGlobalRoundState(40, 30);
+                document.getElementById('round-id-display').innerText = `Phiên: #${st.roundId}`;
+                document.getElementById('dt-timer').innerText = st.timeLeft + 's';
+                const hist = getHistoryRounds('dragon', st.roundId), dotsBox = document.getElementById('dt-history-dots');
+                if (dotsBox) {
+                    dotsBox.innerHTML = hist.map(h => {
+                        let code = h.res.d > h.res.t ? 'D' : (h.res.t > h.res.d ? 'T' : 'E'), col = h.res.d > h.res.t ? 'bg-red-600' : (h.res.t > h.res.d ? 'bg-amber-600' : 'bg-emerald-600');
+                        return `<div class="w-5 h-5 rounded-full ${col} text-white text-[9px] font-bold flex items-center justify-center">${code}</div>`;
+                    }).join('');
+                }
+                const bowl = document.getElementById('dt-bowl'), res = getGlobalGameResult('dragon', st.roundId);
+                
+                if (st.phase === 'BETTING') {
+                    bowlOpened = false;
+                    if (bowl) bowl.classList.add('hidden');
+                    document.getElementById('dt-status').innerText = "ĐANG ĐẶT CƯỢC";
+                    document.getElementById('dt-val-d').innerText = "🂠";
+                    document.getElementById('dt-val-t').innerText = "🂠";
+                } else {
+                    if (!bowlOpened && bowl) bowl.classList.remove('hidden');
+                    document.getElementById('dt-val-d').innerText = res.d;
+                    document.getElementById('dt-val-t').innerText = res.t;
+
+                    if (!bowlOpened && bowl && !bowl.classList.contains('hidden')) {
+                        document.getElementById('dt-status').innerText = "ĐANG NẶN BÀI...";
+                    } else {
+                        document.getElementById('dt-status').innerText = "KẾT QUẢ PHIÊN";
+                        checkDtReward();
+                    }
+                }
+            }
+
+            // KENO 24/7
+            if (currentGame === 'keno') {
+                const st = getGlobalRoundState(40, 30);
+                document.getElementById('round-id-display').innerText = `Phiên: #${st.roundId}`;
+                document.getElementById('keno-timer').innerText = st.timeLeft + 's';
+                const resNum = getGlobalGameResult('keno', st.roundId);
+
+                const hist = getHistoryRounds('keno', st.roundId), dotsBox = document.getElementById('keno-history-dots');
+                if (dotsBox) {
+                    dotsBox.innerHTML = hist.map(h => {
+                        const num = h.res, isOver = num > 50;
+                        return `<div class="w-5 h-5 rounded-full ${isOver?'bg-fuchsia-600':'bg-indigo-600'} text-white text-[9px] font-bold flex items-center justify-center">${isOver?'L':'N'}</div>`;
+                    }).join('');
+                }
+
+                if (st.phase === 'BETTING') {
+                    document.getElementById('keno-status').innerText = "ĐANG ĐẶT CƯỢC";
+                    document.getElementById('keno-num-display').innerText = "?";
+                } else {
+                    if (st.timeLeft >= 9) {
+                        document.getElementById('keno-status').innerText = "ĐANG QUAY SỐ...";
+                        document.getElementById('keno-num-display').innerText = Math.floor(Math.random() * 99) + 1;
+                    } else {
+                        document.getElementById('keno-status').innerText = `KẾT QUẢ: ${resNum}`;
+                        document.getElementById('keno-num-display').innerText = resNum;
+
+                        if (userKenoBets.roundId === st.roundId && !userKenoBets.processed) {
+                            userKenoBets.processed = true;
+                            let winSide = resNum > 50 ? 'OVER' : 'UNDER';
+                            let winAmt = Math.floor(userKenoBets[winSide] * 1.95), totalBet = userKenoBets.OVER + userKenoBets.UNDER;
+                            if (winAmt > 0) { currentUser.balance += winAmt; saveUser(); showToast(`🎉 Thắng Keno +${winAmt.toLocaleString('vi-VN')}đ!`, true); recordBetHistory('keno', 'Keno 24/7', winSide, totalBet, 'WIN', winAmt); }
+                            else if (totalBet > 0) { showToast('Chúc bạn may mắn phiên sau!'); recordBetHistory('keno', 'Keno 24/7', 'Đa cửa', totalBet, 'LOSE', 0); }
+                        }
+                    }
+                }
+            }
+        }, 500);
+
+        window.onload = () => { 
+            db.ref('duc_game/accounts').once('value', (snapshot) => {
+                globalAccounts = snapshot.val() || [];
+                renderLobbyGames(); initAuth(); showScreen('lobby');
+            });
+        };
+    </script>
+</body>
+</html>

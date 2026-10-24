@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUC GAMING - TRANG QUẢN TRỊ ADMIN SUPREME</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #0b0f17; color: #f3f4f6; }
+        .glass-panel { background: rgba(17, 24, 39, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- HEADER ADMIN -->
+    <header class="glass-panel sticky top-0 z-50 border-b border-yellow-500/30 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-black font-black text-xl shadow-lg">
+                <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-black text-yellow-400 tracking-wider">DUC ADMIN DASHBOARD</h1>
+                <p class="text-xs text-gray-400">Đồng bộ Cloud Realtime (Can thiệp & Quản lý đa thiết bị)</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="text-xs bg-emerald-950 text-emerald-400 font-bold px-3 py-1.5 rounded-full border border-emerald-500/40">● Cloud Realtime Active</span>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto p-4 sm:p-6 space-y-6 max-w-7xl">
+        
+        <!-- STATS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="glass-panel p-5 rounded-2xl border-l-4 border-amber-500">
+                <div class="text-xs font-bold text-gray-400 uppercase">Tổng Tài Khoản</div>
+                <div class="text-3xl font-black text-yellow-400 mt-1" id="stat-users-count">0</div>
+            </div>
+            <div class="glass-panel p-5 rounded-2xl border-l-4 border-emerald-500">
+                <div class="text-xs font-bold text-gray-400 uppercase">Tổng Số Dư Thành Viên</div>
+                <div class="text-2xl font-black text-emerald-400 mt-1" id="stat-total-balance">0đ</div>
+            </div>
+            <div class="glass-panel p-5 rounded-2xl border-l-4 border-blue-500">
+                <div class="text-xs font-bold text-gray-400 uppercase">Yêu Cầu Chờ Duyệt</div>
+                <div class="text-3xl font-black text-blue-400 mt-1" id="stat-pending-count">0</div>
+            </div>
+            <div class="glass-panel p-5 rounded-2xl border-l-4 border-purple-500">
+                <div class="text-xs font-bold text-gray-400 uppercase">Thời Gian Phiên Hiện Tại</div>
+                <div class="text-2xl font-black text-purple-400 mt-1 font-mono" id="admin-timer-display">--s</div>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="flex space-x-2 border-b border-gray-800 pb-2 overflow-x-auto">
+            <button onclick="switchTab('control')" id="tab-btn-control" class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-black">CAN THIỆP KẾT QUẢ</button>
+            <button onclick="switchTab('users')" id="tab-btn-users" class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-800 text-gray-300">QUẢN LÝ TÀI KHOẢN</button>
+            <button onclick="switchTab('deposits')" id="tab-btn-deposits" class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-800 text-gray-300">DUYỆT NẠP / RÚT</button>
+            <button onclick="switchTab('bets-online')" id="tab-btn-bets-online" class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-800 text-gray-300">LỊCH SỬ ONLINE</button>
+            <button onclick="switchTab('bets-offline')" id="tab-btn-bets-offline" class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-800 text-gray-300">LỊCH SỬ OFFLINE</button>
+        </div>
+
+        <!-- TAB CAN THIỆP KẾT QUẢ -->
+        <div id="tab-content-control" class="space-y-4">
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+                    <h3 class="text-lg font-bold text-rose-400"><i class="fa-solid fa-sliders text-rose-500 mr-2"></i>Bảng Can Thiệp Kết Quả Phiên Hiện Tại</h3>
+                    <span class="text-xs text-yellow-300 font-bold bg-black/60 px-3 py-1 rounded-lg border border-gold-500/30">* Sau khi hết phiên, cài đặt sẽ tự động Reset về TỰ ĐỘNG</span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- TÀI XỈU -->
+                    <div class="bg-black/50 p-4 rounded-xl border border-gray-800 space-y-2">
+                        <label class="text-xs font-bold text-yellow-300 block">1. TÀI XỈU 24/7:</label>
+                        <select id="ctrl-taixiu" onchange="setGameControl('taixiu', this.value)" class="w-full bg-gray-900 border border-gray-700 text-xs text-white rounded-lg p-2.5 focus:border-amber-500 focus:outline-none">
+                            <option value="AUTO">TỰ ĐỘNG (Bẻ kèo ngẫu nhiên/nhẹ)</option>
+                            <option value="TAI">ÉP TÀI (5 - 5 - 5)</option>
+                            <option value="XIU">ÉP XỈU (1 - 2 - 3)</option>
+                        </select>
+                    </div>
+
+                    <!-- XÓC ĐĨA -->
+                    <div class="bg-black/50 p-4 rounded-xl border border-gray-800 space-y-2">
+                        <label class="text-xs font-bold text-emerald-400 block">2. XÓC ĐĨA 24/7:</label>
+                        <select id="ctrl-xocdia" onchange="setGameControl('xocdia', this.value)" class="w-full bg-gray-900 border border-gray-700 text-xs text-white rounded-lg p-2.5 focus:border-amber-500 focus:outline-none">
+                            <option value="AUTO">TỰ ĐỘNG (Bẻ kèo ngẫu nhiên/nhẹ)</option>
+                            <option value="CHAN">ÉP CHẮN (2 Đỏ 2 Trắng)</option>
+                            <option value="LE">ÉP LẺ (3 Đỏ 1 Trắng)</option>
+                            <option value="TRANG4">ÉP 4 TRẮNG</option>
+                            <option value="DEN4">ÉP 4 ĐEN</option>
+                        </select>
+                    </div>
+
+                    <!-- BẦU CUA -->
+                    <div class="bg-black/50 p-4 rounded-xl border border-gray-800 space-y-2">
+                        <label class="text-xs font-bold text-orange-400 block">3. BẦU CUA 24/7 (Chọn 1 Con Ép):</label>
+                        <select id="ctrl-baucua" onchange="setGameControl('baucua', this.value)" class="w-full bg-gray-900 border border-gray-700 text-xs text-white rounded-lg p-2.5 focus:border-amber-500 focus:outline-none">
+                            <option value="AUTO">TỰ ĐỘNG</option>
+                            <option value="0">ÉP RA BẦU</option>
+                            <option value="1">ÉP RA CUA</option>
+                            <option value="2">ÉP RA TÔM</option>
+                            <option value="3">ÉP RA CÁ</option>
+                            <option value="4">ÉP RA GÀ</option>
+                            <option value="5">ÉP RA NAI</option>
+                        </select>
+                    </div>
+
+                    <!-- BACCARAT -->
+                    <div class="bg-black/50 p-4 rounded-xl border border-gray-800 space-y-2">
+                        <label class="text-xs font-bold text-blue-400 block">4. BACCARAT 24/7:</label>
+                        <select id="ctrl-baccarat" onchange="setGameControl('baccarat', this.value)" class="w-full bg-gray-900 border border-gray-700 text-xs text-white rounded-lg p-2.5 focus:border-amber-500 focus:outline-none">
+                            <option value="AUTO">TỰ ĐỘNG</option>
+                            <option value="PLAYER">ÉP PLAYER THẮNG</option>
+                            <option value="BANKER">ÉP BANKER THẮNG</option>
+                            <option value="TIE">ÉP HÒA</option>
+                        </select>
+                    </div>
+
+                    <!-- RỒNG HỔ -->
+                    <div class="bg-black/50 p-4 rounded-xl border border-gray-800 space-y-2">
+                        <label class="text-xs font-bold text-rose-400 block">5. RỒNG HỔ 24/7:</label>
+                        <select id="ctrl-dragon" onchange="setGameControl('dragon', this.value)" class="w-full bg-gray-900 border border-gray-700 text-xs text-white rounded-lg p-2.5 focus:border-amber-500 focus:outline-none">
+                            <option value="AUTO">TỰ ĐỘNG</option>
+                            <option value="DRAGON">ÉP RỒNG THẮNG</option>
+                            <option value="TIGER">ÉP HỔ THẮNG</option>
+                            <option value="TIE">ÉP HÒA</option>
+                        </select>
+                    </div>
+
+                    <!-- KENO -->
+                    <div class="bg-black/50 p-4 rounded-xl border border-gray-800 space-y-2">
+                        <label class="text-xs font-bold text-fuchsia-400 block">6. KENO 24/7:</label>
+                        <select id="ctrl-keno" onchange="setGameControl('keno', this.value)" class="w-full bg-gray-900 border border-gray-700 text-xs text-white rounded-lg p-2.5 focus:border-amber-500 focus:outline-none">
+                            <option value="AUTO">TỰ ĐỘNG</option>
+                            <option value="OVER">ÉP TÀI / LỚN (>50)</option>
+                            <option value="UNDER">ÉP XỈU / NHỎ (<=50)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB QUẢN LÝ USER -->
+        <div id="tab-content-users" class="hidden space-y-4">
+            <div class="glass-panel rounded-2xl p-4 overflow-x-auto">
+                <h3 class="text-lg font-bold text-yellow-400 mb-4"><i class="fa-solid fa-users text-amber-500 mr-2"></i>Danh Sách Người Chơi</h3>
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-black/60 text-gray-400 uppercase">
+                        <tr>
+                            <th class="p-3">Tài Khoản</th>
+                            <th class="p-3">Mật Khẩu</th>
+                            <th class="p-3">Số Dư Hiện Tại</th>
+                            <th class="p-3">Nhập Số Tiền Cần Thay Đổi</th>
+                            <th class="p-3">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body" class="divide-y divide-gray-800"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB DUYỆT NẠP RÚT -->
+        <div id="tab-content-deposits" class="hidden space-y-4">
+            <div class="glass-panel rounded-2xl p-4 overflow-x-auto">
+                <h3 class="text-lg font-bold text-emerald-400 mb-4"><i class="fa-solid fa-money-bill-transfer text-emerald-500 mr-2"></i>Yêu Cầu Nạp / Rút Tiền</h3>
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-black/60 text-gray-400 uppercase">
+                        <tr>
+                            <th class="p-3">Mã GD</th>
+                            <th class="p-3">Loại</th>
+                            <th class="p-3">Người Chơi</th>
+                            <th class="p-3">Số Tiền</th>
+                            <th class="p-3">Chi Tiết</th>
+                            <th class="p-3">Thời Gian</th>
+                            <th class="p-3">Trạng Thái</th>
+                            <th class="p-3">Duyệt GD</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deposit-table-body" class="divide-y divide-gray-800"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB LỊCH SỬ ONLINE -->
+        <div id="tab-content-bets-online" class="hidden space-y-4">
+            <div class="glass-panel rounded-2xl p-4 overflow-x-auto">
+                <h3 class="text-lg font-bold text-blue-400 mb-4"><i class="fa-solid fa-globe text-blue-500 mr-2"></i>Lịch Sử Đặt Cược Online (Thành viên hệ thống)</h3>
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-black/60 text-gray-400 uppercase">
+                        <tr>
+                            <th class="p-3">Thời Gian</th>
+                            <th class="p-3">Người Chơi</th>
+                            <th class="p-3">Tên Game</th>
+                            <th class="p-3">Cửa Chọn</th>
+                            <th class="p-3">Mức Cược</th>
+                            <th class="p-3">Trạng Thái</th>
+                            <th class="p-3">Tiền Thắng</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bets-online-body" class="divide-y divide-gray-800"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB LỊCH SỬ OFFLINE -->
+        <div id="tab-content-bets-offline" class="hidden space-y-4">
+            <div class="glass-panel rounded-2xl p-4 overflow-x-auto">
+                <h3 class="text-lg font-bold text-purple-400 mb-4"><i class="fa-solid fa-computer text-purple-500 mr-2"></i>Lịch Sử Trò Chơi Offline (Trải nghiệm tại máy)</h3>
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-black/60 text-gray-400 uppercase">
+                        <tr>
+                            <th class="p-3">Thời Gian</th>
+                            <th class="p-3">Tên Trò Chơi</th>
+                            <th class="p-3">Hành Động / Cửa</th>
+                            <th class="p-3">Tiền Cược</th>
+                            <th class="p-3">Kết Quả</th>
+                            <th class="p-3">Tiền Thưởng Nhận</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bets-offline-body" class="divide-y divide-gray-800"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // === KHỞI TẠO FIREBASE CHO ADMIN ===
+        const firebaseConfig = {
+            apiKey: "AIzaSyDACn0LR27Fa1_zn1a_Kdo0-Nk6ZyZzOLi",
+            authDomain: "game-81566.firebaseapp.com",
+            databaseURL: "https://game-81566-default-rtdb.firebaseio.com",
+            projectId: "game-81566",
+            storageBucket: "game-81566.appspot.com",
+            messagingSenderId: "341383573483",
+            appId: "1:341383573483:web:c39dd5538ea3e9bdbf3ae"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let allAccounts = [];
+        let allDeposits = {};
+        let onlineBetsData = {};
+        let offlineBetsData = {};
+        let controlsData = {};
+        let lastRoundId = -1;
+
+        // Lắng nghe realtime từ Firebase Cloud
+        db.ref('duc_game/accounts').on('value', (snapshot) => {
+            allAccounts = snapshot.val() || [];
+            renderAccounts();
+        });
+
+        db.ref('duc_pending_deposits').on('value', (snapshot) => {
+            allDeposits = snapshot.val() || {};
+            renderDeposits();
+        });
+
+        db.ref('duc_game_bet_history').on('value', (snapshot) => {
+            onlineBetsData = snapshot.val() || {};
+            renderBetHistories();
+        });
+
+        db.ref('duc_offline_game_history').on('value', (snapshot) => {
+            offlineBetsData = snapshot.val() || {};
+            renderBetHistories();
+        });
+
+        db.ref('duc_game/controls').on('value', (snapshot) => {
+            controlsData = snapshot.val() || {};
+            loadControlSettings();
+        });
+
+        function setGameControl(gameKey, val) {
+            db.ref(`duc_game/controls/${gameKey}`).set(val);
+        }
+
+        function loadControlSettings() {
+            ['taixiu', 'xocdia', 'baucua', 'baccarat', 'dragon', 'keno'].forEach(g => {
+                const el = document.getElementById(`ctrl-${g}`);
+                if (el && controlsData[g]) el.value = controlsData[g];
+            });
+        }
+
+        function resetControlsToAuto() {
+            db.ref('duc_game/controls').set({});
+        }
+
+        function renderAccounts() {
+            document.getElementById('stat-users-count').innerText = allAccounts.length;
+            let totalBal = allAccounts.reduce((acc, cur) => acc + (cur.balance || 0), 0);
+            document.getElementById('stat-total-balance').innerText = totalBal.toLocaleString('vi-VN') + 'đ';
+
+            const tbody = document.getElementById('user-table-body');
+            tbody.innerHTML = allAccounts.map((u, idx) => `
+                <tr class="hover:bg-white/5">
+                    <td class="p-3 font-bold text-yellow-300">${u.username}</td>
+                    <td class="p-3 font-mono text-gray-400">${u.password}</td>
+                    <td class="p-3 font-bold text-emerald-400">${(u.balance || 0).toLocaleString('vi-VN')}đ</td>
+                    <td class="p-3">
+                        <input type="number" id="input-amt-${idx}" placeholder="Số tiền (VD: 500000)" class="w-48 bg-black/70 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-yellow-300 focus:border-amber-500 focus:outline-none font-mono">
+                    </td>
+                    <td class="p-3 flex space-x-2">
+                        <button onclick="handleCustomBalance('${u.username}', 'input-amt-${idx}', 'ADD')" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-lg text-xs shadow"><i class="fa-solid fa-plus mr-1"></i> Cộng</button>
+                        <button onclick="handleCustomBalance('${u.username}', 'input-amt-${idx}', 'SUB')" class="px-3 py-1.5 bg-rose-800 hover:bg-rose-700 text-white font-bold rounded-lg text-xs shadow"><i class="fa-solid fa-minus mr-1"></i> Trừ</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function handleCustomBalance(username, inputId, action) {
+            const inputEl = document.getElementById(inputId);
+            if (!inputEl) return;
+            let val = parseInt(inputEl.value);
+            if (isNaN(val) || val <= 0) return alert('Số tiền không hợp lệ!');
+            let changeAmt = (action === 'ADD') ? val : -val;
+            modifyBalance(username, changeAmt);
+            inputEl.value = '';
+        }
+
+        function modifyBalance(username, amount) {
+            let idx = allAccounts.findIndex(a => a.username === username);
+            if (idx !== -1) {
+                allAccounts[idx].balance = Math.max(0, (allAccounts[idx].balance || 0) + amount);
+                db.ref('duc_game/accounts').set(allAccounts);
+            }
+        }
+
+        function renderDeposits() {
+            let list = Object.keys(allDeposits).map(k => ({ key: k, ...allDeposits[k] }));
+            document.getElementById('stat-pending-count').innerText = list.filter(x => x.status === 'PENDING').length;
+
+            const tbody = document.getElementById('deposit-table-body');
+            tbody.innerHTML = list.map(item => `
+                <tr class="hover:bg-white/5">
+                    <td class="p-3 font-mono text-gray-400">${item.id}</td>
+                    <td class="p-3 font-bold ${item.type==='NAP'?'text-emerald-400':'text-rose-400'}">${item.type}</td>
+                    <td class="p-3 font-bold text-yellow-300">${item.username}</td>
+                    <td class="p-3 font-bold text-white">${item.amount.toLocaleString('vi-VN')}đ</td>
+                    <td class="p-3 text-gray-300">${item.details}</td>
+                    <td class="p-3 text-gray-400">${item.time}</td>
+                    <td class="p-3 font-bold ${item.status==='APPROVED'?'text-emerald-400':(item.status==='REJECTED'?'text-rose-500':'text-yellow-400')}">${item.status}</td>
+                    <td class="p-3">
+                        ${item.status === 'PENDING' ? `
+                            <button onclick="approveDeposit('${item.key}', true)" class="px-2 py-1 bg-emerald-600 text-white font-bold rounded mr-1">Duyệt</button>
+                            <button onclick="approveDeposit('${item.key}', false)" class="px-2 py-1 bg-rose-600 text-white font-bold rounded">Từ Chối</button>
+                        ` : '<span class="text-gray-500">Đã xong</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function approveDeposit(key, isApprove) {
+            db.ref(`duc_pending_deposits/${key}/status`).set(isApprove ? 'APPROVED' : 'REJECTED');
+            if (isApprove) {
+                let item = allDeposits[key];
+                if (item) {
+                    let amount = item.type === 'NAP' ? item.amount : -item.amount;
+                    modifyBalance(item.username, amount);
+                }
+            }
+        }
+
+        function renderBetHistories() {
+            let onlineList = Object.keys(onlineBetsData).map(k => onlineBetsData[k]).reverse();
+            const tbodyOnline = document.getElementById('bets-online-body');
+            tbodyOnline.innerHTML = onlineList.map(b => `
+                <tr class="hover:bg-white/5">
+                    <td class="p-3 text-gray-400">${b.time}</td>
+                    <td class="p-3 font-bold text-yellow-300">${b.username}</td>
+                    <td class="p-3 font-bold text-blue-400">${b.game}</td>
+                    <td class="p-3 font-bold text-white">${b.choice}</td>
+                    <td class="p-3 font-bold text-gray-200">${b.betAmount.toLocaleString('vi-VN')}đ</td>
+                    <td class="p-3 font-bold ${b.status==='WIN'?'text-emerald-400':'text-rose-500'}">${b.status}</td>
+                    <td class="p-3 font-bold text-emerald-300">+${(b.winAmount||0).toLocaleString('vi-VN')}đ</td>
+                </tr>
+            `).join('');
+
+            let offlineList = Object.keys(offlineBetsData).map(k => offlineBetsData[k]).reverse();
+            const tbodyOffline = document.getElementById('bets-offline-body');
+            tbodyOffline.innerHTML = offlineList.map(b => `
+                <tr class="hover:bg-white/5">
+                    <td class="p-3 text-gray-400">${b.time}</td>
+                    <td class="p-3 font-bold text-purple-400">${b.game}</td>
+                    <td class="p-3 font-bold text-white">${b.choice}</td>
+                    <td class="p-3 font-bold text-gray-200">${b.betAmount.toLocaleString('vi-VN')}đ</td>
+                    <td class="p-3 text-yellow-300">${b.resultText}</td>
+                    <td class="p-3 font-bold text-emerald-300">+${(b.winAmount||0).toLocaleString('vi-VN')}đ</td>
+                </tr>
+            `).join('');
+        }
+
+        function switchTab(tab) {
+            ['users', 'control', 'deposits', 'bets-online', 'bets-offline'].forEach(t => {
+                const el = document.getElementById(`tab-content-${t}`);
+                if(el) el.classList.add('hidden');
+                const btn = document.getElementById(`tab-btn-${t}`);
+                if(btn) btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-gray-800 text-gray-300";
+            });
+            document.getElementById(`tab-content-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tab}`).className = "px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-black";
+        }
+
+        setInterval(() => {
+            const now = Math.floor(Date.now() / 1000);
+            const cycleSeconds = 40;
+            const roundId = Math.floor(now / cycleSeconds);
+            const secInCycle = now % cycleSeconds;
+            const timeLeft = secInCycle < 30 ? (30 - secInCycle) : (cycleSeconds - secInCycle);
+
+            const timerDisp = document.getElementById('admin-timer-display');
+            if(timerDisp) timerDisp.innerText = secInCycle < 30 ? `Cược (${timeLeft}s)` : `Nặn (${timeLeft}s)`;
+
+            if (lastRoundId !== -1 && roundId !== lastRoundId) {
+                resetControlsToAuto();
+            }
+            lastRoundId = roundId;
+        }, 500);
+    </script>
+</body>
+</html>
