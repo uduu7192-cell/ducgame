@@ -6,7 +6,7 @@
     <title>duc - Cổng Game Giải Trí VIP 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase SDK (Compat Version để chạy mượt mà trên file HTML tĩnh) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
@@ -470,13 +470,10 @@
         }
 
         function initAuth() {
-            const saved = localStorage.getItem('ducgemevui_current_user');
-            if (saved) { try { currentUser = JSON.parse(saved); } catch(e) { currentUser = null; } }
-            if (currentUser && globalAccounts.length > 0) {
-                let found = globalAccounts.find(acc => acc.username === currentUser.username);
-                if (found) { currentUser = found; localStorage.setItem('ducgemevui_current_user', JSON.stringify(currentUser)); }
-            }
+            currentUser = null;
+            localStorage.removeItem('ducgemevui_current_user');
             updateUserUI();
+            openAuthModal('login');
         }
 
         function saveUser() {
@@ -523,7 +520,7 @@
             }
         }
 
-        function logout() { AudioEngine.playClick(); currentUser = null; localStorage.removeItem('ducgemevui_current_user'); updateUserUI(); showScreen('lobby'); }
+        function logout() { AudioEngine.playClick(); currentUser = null; localStorage.removeItem('ducgemevui_current_user'); updateUserUI(); showScreen('lobby'); openAuthModal('login'); }
         function openDepositModal() { if(!currentUser) { openAuthModal('login'); return; } AudioEngine.playClick(); document.getElementById('modal-deposit').classList.remove('hidden'); }
         function openWithdrawModal() { if(!currentUser) { openAuthModal('login'); return; } AudioEngine.playClick(); document.getElementById('modal-withdraw').classList.remove('hidden'); }
         function closeModal(id) { AudioEngine.playClick(); document.getElementById(id).classList.add('hidden'); }
@@ -1142,7 +1139,7 @@
             }, 3500);
         }
 
-        // --- 8. POKER MINI chuẩn xác (Lật xong mới biết Thắng/Thua) ---
+        // --- 8. POKER MINI ---
         let pokerState = { dealt: false, flippedCount: 0, betAmount: 0, cards: [], isProcessed: false };
         
         function initPoker(container) {
@@ -1177,13 +1174,11 @@
             pokerState.flippedCount = 0;
             pokerState.isProcessed = false;
 
-            // Tạo bộ bài 52 lá chuẩn
             const suits = ['♠', '♣', '♦', '♥'];
             const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
             let deck = [];
             suits.forEach(s => ranks.forEach((r, idx) => deck.push({ rank: r, suit: s, val: idx + 2, isRed: s==='♦'||s==='♥' })));
             
-            // Xáo bài và chọn 5 lá
             deck.sort(() => Math.random() - 0.5);
             pokerState.cards = deck.slice(0, 5);
 
@@ -1398,7 +1393,7 @@
             recordBetHistory('crash', 'Máy Bay', `${crashGame.rate}x`, userCrashBet.betAmt, 'WIN', winAmt);
         }
 
-        // --- 10. XỔ SỐ LÔ ĐỀ (OFFLINE) ---
+        // --- 10. XỔ SỐ LÔ ĐỀ ---
         function initLoDe(container) {
             container.innerHTML = `
                 <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
@@ -1465,7 +1460,7 @@
             }, selectedLodeType * 800 + 400);
         }
 
-        // --- 11. LIÊNG 3 LÁ chuẩn đối đầu Nhà Cái ---
+        // --- 11. LIÊNG 3 LÁ ---
         let liengState = { dealt: false, playerCards: [], dealerCards: [], betAmount: 0, isFlipped: false };
         
         function initLieng(container) {
@@ -1539,7 +1534,6 @@
             cardContainers.forEach(c => c.classList.add('flipped'));
             AudioEngine.playClick();
 
-            // Mở bài Nhà Cái
             const dealerBox = document.getElementById('lieng-dealer-box');
             dealerBox.innerHTML = liengState.dealerCards.map(c => `
                 <div class="w-10 h-14 bg-white border-2 border-gold-400 ${c.isRed?'text-red-600':'text-black'} font-bold flex flex-col items-center justify-center rounded text-xs">
@@ -1547,7 +1541,6 @@
                 </div>
             `).join('');
 
-            // Tính điểm Liêng
             let pScore = calcLiengScore(liengState.playerCards);
             let dScore = calcLiengScore(liengState.dealerCards);
 
