@@ -232,13 +232,13 @@
     </div>
 
     <script>
-        // === KHỞI TẠO FIREBASE CHO NGƯỜI CHƠI ===
+        // === KHỞI TẠO FIREBASE CHO PROJECT `game-addmin` ===
         const firebaseConfig = {
             apiKey: "AIzaSyDACn0LR27Fa1_zn1a_Kdo0-Nk6ZyZzOLi",
-            authDomain: "game-81566.firebaseapp.com",
-            databaseURL: "https://game-81566-default-rtdb.firebaseio.com",
-            projectId: "game-81566",
-            storageBucket: "game-81566.appspot.com",
+            authDomain: "game-addmin.firebaseapp.com",
+            databaseURL: "https://game-addmin-default-rtdb.firebaseio.com",
+            projectId: "game-addmin",
+            storageBucket: "game-addmin.appspot.com",
             messagingSenderId: "341383573483",
             appId: "1:341383573483:web:c39dd5538ea3e9bdbf3ae"
         };
@@ -250,7 +250,14 @@
 
         // Lắng nghe dữ liệu tài khoản từ Firebase Realtime Database
         db.ref('duc_game/accounts').on('value', (snapshot) => {
-            globalAccounts = snapshot.val() || [];
+            const rawVal = snapshot.val();
+            if (Array.isArray(rawVal)) {
+                globalAccounts = rawVal;
+            } else if (rawVal && typeof rawVal === 'object') {
+                globalAccounts = Object.values(rawVal);
+            } else {
+                globalAccounts = [];
+            }
             if (currentUser) {
                 let found = globalAccounts.find(a => a.username === currentUser.username);
                 if (found) { currentUser = found; updateUserUI(); }
@@ -355,7 +362,7 @@
                         t: Math.floor(getDeterministicRandom(roundId * 5 + 2) * 13) + 1 
                     };
                 } else if (gameType === 'keno') {
-                    return Math.floor(getDeterministicRandom(roundId * 8) * 100) + 1;
+                    return Math.floor(getDeterministicRandom(roundId * 8.123 + 1.5) * 100) + 1;
                 } else if (gameType === 'baucua') {
                     return [
                         Math.floor(getDeterministicRandom(roundId * 4 + 1) * 6), 
@@ -371,7 +378,7 @@
                 if (ctrlMode === 'TAI') return [5, 5, 5];
                 if (ctrlMode === 'XIU') return [1, 2, 3];
                 let targetTai = userTxBets.TAI < userTxBets.XIU;
-                if (userTxBets.TAI === userTxBets.XIU) targetTai = getDeterministicRandom(roundId * 3) > 0.55;
+                if (userTxBets.TAI === userTxBets.XIU) targetTai = getDeterministicRandom(roundId * 3) > 0.5;
                 return targetTai ? [4, 5, 5] : [1, 2, 4];
             } 
             else if (gameType === 'xocdia') {
@@ -380,7 +387,7 @@
                 if (ctrlMode === 'TRANG4') return [0, 0, 0, 0];
                 if (ctrlMode === 'DEN4') return [1, 1, 1, 1];
                 let targetChan = userXdBets.CHAN < userXdBets.LE;
-                if (userXdBets.CHAN === userXdBets.LE) targetChan = getDeterministicRandom(roundId * 4) > 0.55;
+                if (userXdBets.CHAN === userXdBets.LE) targetChan = getDeterministicRandom(roundId * 4) > 0.5;
                 return targetChan ? [1, 1, 0, 0] : [1, 0, 0, 0];
             } 
             else if (gameType === 'baucua') {
@@ -405,7 +412,9 @@
             else if (gameType === 'keno') {
                 if (ctrlMode === 'OVER') return 88;
                 if (ctrlMode === 'UNDER') return 12;
-                return 75;
+                let targetOver = userKenoBets.OVER < userKenoBets.UNDER;
+                if (userKenoBets.OVER === userKenoBets.UNDER) targetOver = getDeterministicRandom(roundId * 7.5) > 0.5;
+                return targetOver ? Math.floor(getDeterministicRandom(roundId * 3.1) * 49) + 51 : Math.floor(getDeterministicRandom(roundId * 2.7) * 49) + 1;
             }
         }
 
@@ -474,7 +483,11 @@
             if (currentUser) {
                 localStorage.setItem('ducgemevui_current_user', JSON.stringify(currentUser));
                 const idx = globalAccounts.findIndex(acc => acc.username === currentUser.username);
-                if (idx !== -1) globalAccounts[idx] = currentUser; else globalAccounts.push(currentUser);
+                if (idx !== -1) {
+                    globalAccounts[idx] = currentUser;
+                } else {
+                    globalAccounts.push(currentUser);
+                }
                 saveAccountsToFirebase();
                 updateUserUI();
             }
@@ -1129,50 +1142,123 @@
             }, 3500);
         }
 
-        // --- 8. POKER MINI (OFFLINE) ---
-        let pokerState = { dealt: false, cards: [] };
+        // --- 8. POKER MINI chuẩn xác (Lật xong mới biết Thắng/Thua) ---
+        let pokerState = { dealt: false, flippedCount: 0, betAmount: 0, cards: [], isProcessed: false };
+        
         function initPoker(container) {
-            pokerState = { dealt: false, cards: [] };
+            pokerState = { dealt: false, flippedCount: 0, betAmount: 0, cards: [], isProcessed: false };
             container.innerHTML = `
                 <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
                     <div class="bg-casino-card border-2 border-gold-500/50 rounded-2xl p-6 w-full text-center space-y-4">
-                        <div class="text-xs text-yellow-300 font-bold">1. Chọn chip -> 2. Bấm Chia Bài -> 3. Chạm từng lá để lật!</div>
-                        <div id="poker-hand" class="flex justify-center space-x-2 my-4">
-                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
-                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
-                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
-                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
-                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
+                        <div class="text-xs text-yellow-300 font-bold" id="poker-status-txt">1. Chọn mức cược -> 2. Bấm Chia Bài -> 3. Lật đủ 5 lá để tính Thắng/Thua!</div>
+                        <div id="poker-hand" class="flex justify-center space-x-1.5 sm:space-x-2 my-4">
+                            ${[0,1,2,3,4].map(() => `
+                                <div class="playing-card-container">
+                                    <div class="playing-card-inner">
+                                        <div class="card-face card-back"></div>
+                                        <div class="card-face card-front">?</div>
+                                    </div>
+                                </div>
+                            `).join('')}
                         </div>
                         <button onclick="dealPokerCards()" id="btn-poker-deal" class="gold-btn w-full py-3.5 rounded-xl font-bold uppercase">CHIA BÀI POKER (${selectedChip.toLocaleString('vi-VN')}đ)</button>
                     </div>
                 </div>
             `;
         }
-        function dealPokerCards() {
-            if (currentUser.balance < selectedChip) return showToast('Không đủ tiền!');
-            currentUser.balance -= selectedChip; saveUser();
-            pokerState.dealt = true;
 
-            const ranks = ['10', 'J', 'Q', 'K', 'A'];
+        function dealPokerCards() {
+            if (currentUser.balance < selectedChip) return showToast('Số dư không đủ!');
+            
+            pokerState.betAmount = selectedChip;
+            currentUser.balance -= pokerState.betAmount; saveUser();
+            
+            pokerState.dealt = true;
+            pokerState.flippedCount = 0;
+            pokerState.isProcessed = false;
+
+            // Tạo bộ bài 52 lá chuẩn
+            const suits = ['♠', '♣', '♦', '♥'];
+            const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+            let deck = [];
+            suits.forEach(s => ranks.forEach((r, idx) => deck.push({ rank: r, suit: s, val: idx + 2, isRed: s==='♦'||s==='♥' })));
+            
+            // Xáo bài và chọn 5 lá
+            deck.sort(() => Math.random() - 0.5);
+            pokerState.cards = deck.slice(0, 5);
+
             const handBox = document.getElementById('poker-hand');
-            handBox.innerHTML = ranks.map((r, i) => `
-                <div class="playing-card-container" onclick="flipPokerCard(this, ${i})">
+            handBox.innerHTML = pokerState.cards.map((card, i) => `
+                <div class="playing-card-container" id="poker-card-${i}" onclick="flipPokerCard(${i})">
                     <div class="playing-card-inner">
                         <div class="card-face card-back"></div>
-                        <div class="card-face card-front ${i%2===0?'red':''}"><span>${r}</span></div>
+                        <div class="card-face card-front ${card.isRed?'red':''}">
+                            <span>${card.rank}</span>
+                            <span class="text-lg">${card.suit}</span>
+                        </div>
                     </div>
                 </div>
             `).join('');
 
-            let winAmt = Math.floor(selectedChip * 2.5);
-            currentUser.balance += winAmt; saveUser();
-            showToast(`🎉 Đã chia bài thành công! Bấm lật bài nhận +${winAmt.toLocaleString('vi-VN')}đ!`, true);
-            recordOfflineHistory('Poker Mini', 'Đã chia', selectedChip, 'Thắng bài', winAmt);
+            document.getElementById('poker-status-txt').innerText = "Đã chia bài! Vui lòng bấm chạm lật tất cả 5 lá bài.";
+            document.getElementById('btn-poker-deal').innerText = "ĐÃ CHIA BÀI (Chạm lật bài...)";
         }
-        function flipPokerCard(el, idx) {
+
+        function flipPokerCard(idx) {
             if (!pokerState.dealt) return showToast('Vui lòng bấm Chia Bài trước!');
-            el.classList.add('flipped'); AudioEngine.playClick();
+            const cardEl = document.getElementById(`poker-card-${idx}`);
+            if (cardEl && !cardEl.classList.contains('flipped')) {
+                cardEl.classList.add('flipped');
+                pokerState.flippedCount++;
+                AudioEngine.playClick();
+
+                if (pokerState.flippedCount === 5 && !pokerState.isProcessed) {
+                    pokerState.isProcessed = true;
+                    evaluatePokerResult();
+                }
+            }
+        }
+
+        function evaluatePokerResult() {
+            const cards = pokerState.cards;
+            const vals = cards.map(c => c.val).sort((a,b)=>a-b);
+            const suits = cards.map(c => c.suit);
+            
+            const isFlush = suits.every(s => s === suits[0]);
+            let isStraight = (vals[4]-vals[0]===4 && new Set(vals).size===5) || (vals[0]===2&&vals[1]===3&&vals[2]===4&&vals[3]===5&&vals[4]===14);
+
+            let counts = {};
+            vals.forEach(v => counts[v] = (counts[v]||0)+1);
+            let cVals = Object.values(counts).sort((a,b)=>b-a);
+
+            let rankName = "Mậu Thân", mult = 0;
+
+            if (isFlush && isStraight && vals[4]===14) { rankName = "Thùng Phá Sảnh (x50)"; mult = 50; }
+            else if (isFlush && isStraight) { rankName = "Thùng Phá Sảnh (x30)"; mult = 30; }
+            else if (cVals[0] === 4) { rankName = "Tứ Quý (x20)"; mult = 20; }
+            else if (cVals[0] === 3 && cVals[1] === 2) { rankName = "Cù Lũ (x10)"; mult = 10; }
+            else if (isFlush) { rankName = "Thùng (x7)"; mult = 7; }
+            else if (isStraight) { rankName = "Sảnh (x5)"; mult = 5; }
+            else if (cVals[0] === 3) { rankName = "Sám Cô (x3)"; mult = 3; }
+            else if (cVals[0] === 2 && cVals[1] === 2) { rankName = "Hai Đôi (x2)"; mult = 2; }
+            else if (cVals[0] === 2) {
+                let pairVal = Object.keys(counts).find(k => counts[k]===2);
+                if (parseInt(pairVal) >= 11) { rankName = "Đôi J trở lên (x1)"; mult = 1; }
+            }
+
+            let winAmt = pokerState.betAmount * mult;
+            if (winAmt > 0) {
+                currentUser.balance += winAmt; saveUser();
+                showToast(`🎉 Xếp bài: ${rankName}! Thắng +${winAmt.toLocaleString('vi-VN')}đ!`, true);
+                recordOfflineHistory('Poker Mini', rankName, pokerState.betAmount, 'WIN', winAmt);
+            } else {
+                showToast(`Bài: ${rankName}. Chúc bạn may mắn lần sau!`);
+                recordOfflineHistory('Poker Mini', 'Mậu Thân', pokerState.betAmount, 'LOSE', 0);
+            }
+
+            document.getElementById('poker-status-txt').innerText = `Kết quả bài: ${rankName}`;
+            updateOfflineButtonLabels();
+            pokerState.dealt = false;
         }
 
         // --- 9. MÁY BAY CRASH ---
@@ -1379,39 +1465,122 @@
             }, selectedLodeType * 800 + 400);
         }
 
-        // --- 11. LIÊNG 3 LÁ (OFFLINE) ---
-        let liengState = { dealt: false };
+        // --- 11. LIÊNG 3 LÁ chuẩn đối đầu Nhà Cái ---
+        let liengState = { dealt: false, playerCards: [], dealerCards: [], betAmount: 0, isFlipped: false };
+        
         function initLieng(container) {
-            liengState = { dealt: false };
+            liengState = { dealt: false, playerCards: [], dealerCards: [], betAmount: 0, isFlipped: false };
             container.innerHTML = `
                 <div class="flex flex-col items-center space-y-4 max-w-xl mx-auto">
                     <div class="bg-casino-card border-2 border-gold-500/50 rounded-2xl p-6 w-full text-center space-y-4">
-                        <div class="text-xs text-yellow-300 font-bold">1. Chọn chip -> 2. Tố bài -> 3. Chạm để lật bài!</div>
-                        <div id="lieng-cards" class="flex justify-center space-x-2 my-4">
-                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
-                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
-                            <div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>
+                        <div class="text-xs text-yellow-300 font-bold" id="lieng-status-txt">1. Chọn mức cược -> 2. Tố Liêng -> 3. Lật bài so điểm với Nhà Cái!</div>
+                        
+                        <div class="space-y-2">
+                            <div class="text-xs text-red-400 font-bold uppercase">BÀI NHÀ CÁI</div>
+                            <div id="lieng-dealer-box" class="flex justify-center space-x-2">
+                                ${[0,1,2].map(()=>`<div class="w-10 h-14 bg-red-950 border-2 border-gold-400 text-yellow-300 flex items-center justify-center rounded">🂠</div>`).join('')}
+                            </div>
                         </div>
+
+                        <div class="text-xl font-black text-gold-400">VS</div>
+
+                        <div class="space-y-2">
+                            <div class="text-xs text-emerald-400 font-bold uppercase">BÀI CỦA BẠN</div>
+                            <div id="lieng-cards" class="flex justify-center space-x-2">
+                                ${[0,1,2].map(()=>`<div class="playing-card-container"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">?</div></div></div>`).join('')}
+                            </div>
+                        </div>
+
                         <button onclick="playLiengRound()" id="btn-lieng-play" class="gold-btn w-full py-3.5 rounded-xl font-bold uppercase">TỐ LIÊNG (${selectedChip.toLocaleString('vi-VN')}đ)</button>
                     </div>
                 </div>
             `;
         }
+
         function playLiengRound() {
-            if (currentUser.balance < selectedChip) return showToast('Không đủ tiền!');
-            currentUser.balance -= selectedChip; saveUser();
+            if (currentUser.balance < selectedChip) return showToast('Số dư không đủ!');
+            
+            liengState.betAmount = selectedChip;
+            currentUser.balance -= liengState.betAmount; saveUser();
             liengState.dealt = true;
+            liengState.isFlipped = false;
+
+            const suits = ['♠', '♣', '♦', '♥'];
+            const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+            let deck = [];
+            suits.forEach(s => ranks.forEach((r, idx) => deck.push({ rank: r, suit: s, val: idx + 2, isRed: s==='♦'||s==='♥' })));
+            deck.sort(() => Math.random() - 0.5);
+
+            liengState.playerCards = deck.slice(0, 3);
+            liengState.dealerCards = deck.slice(3, 6);
 
             const cardsBox = document.getElementById('lieng-cards');
-            cardsBox.innerHTML = `
-                <div class="playing-card-container" onclick="this.classList.add('flipped')"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front red">9</div></div></div>
-                <div class="playing-card-container" onclick="this.classList.add('flipped')"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front">J</div></div></div>
-                <div class="playing-card-container" onclick="this.classList.add('flipped')"><div class="playing-card-inner"><div class="card-face card-back"></div><div class="card-face card-front red">Q</div></div></div>
-            `;
+            cardsBox.innerHTML = liengState.playerCards.map((card) => `
+                <div class="playing-card-container" onclick="flipLiengCards()">
+                    <div class="playing-card-inner">
+                        <div class="card-face card-back"></div>
+                        <div class="card-face card-front ${card.isRed?'red':''}">
+                            <span>${card.rank}</span>
+                            <span class="text-lg">${card.suit}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
 
-            let winAmt = selectedChip * 3; currentUser.balance += winAmt; saveUser();
-            showToast(`🎉 Tố Liêng thành công! Lật bài nhận +${winAmt.toLocaleString('vi-VN')}đ!`, true);
-            recordOfflineHistory('Liêng 3 Lá', 'Tố cược', selectedChip, 'Thắng Liêng', winAmt);
+            document.getElementById('lieng-status-txt').innerText = "Đã tố bài! Chạm vào bộ bài của bạn để lật bài so điểm.";
+            document.getElementById('btn-lieng-play').innerText = "CHẠM ĐỂ LẬT BÀI";
+        }
+
+        function flipLiengCards() {
+            if (!liengState.dealt || liengState.isFlipped) return;
+            liengState.isFlipped = true;
+
+            const cardContainers = document.querySelectorAll('#lieng-cards .playing-card-container');
+            cardContainers.forEach(c => c.classList.add('flipped'));
+            AudioEngine.playClick();
+
+            // Mở bài Nhà Cái
+            const dealerBox = document.getElementById('lieng-dealer-box');
+            dealerBox.innerHTML = liengState.dealerCards.map(c => `
+                <div class="w-10 h-14 bg-white border-2 border-gold-400 ${c.isRed?'text-red-600':'text-black'} font-bold flex flex-col items-center justify-center rounded text-xs">
+                    <span>${c.rank}</span><span>${c.suit}</span>
+                </div>
+            `).join('');
+
+            // Tính điểm Liêng
+            let pScore = calcLiengScore(liengState.playerCards);
+            let dScore = calcLiengScore(liengState.dealerCards);
+
+            if (pScore.score > dScore.score) {
+                let winAmt = liengState.betAmount * 2;
+                currentUser.balance += winAmt; saveUser();
+                showToast(`🎉 Bạn thắng (${pScore.label} vs ${dScore.label})! +${winAmt.toLocaleString('vi-VN')}đ`, true);
+                recordOfflineHistory('Liêng 3 Lá', 'Thắng', liengState.betAmount, 'WIN', winAmt);
+            } else if (pScore.score === dScore.score) {
+                currentUser.balance += liengState.betAmount; saveUser();
+                showToast(`Hòa bài (${pScore.label})! Hoàn lại cược.`);
+            } else {
+                showToast(`Nhà cái thắng (${dScore.label} vs ${pScore.label}). Chúc bạn may mắn!`);
+                recordOfflineHistory('Liêng 3 Lá', 'Thua', liengState.betAmount, 'LOSE', 0);
+            }
+
+            document.getElementById('lieng-status-txt').innerText = `Bài Bạn: ${pScore.label} | Bài Nhà Cái: ${dScore.label}`;
+            updateOfflineButtonLabels();
+            liengState.dealt = false;
+        }
+
+        function calcLiengScore(cards) {
+            let vals = cards.map(c => c.val).sort((a,b)=>a-b);
+            let isSap = (vals[0] === vals[1] && vals[1] === vals[2]);
+            let isLieng = (vals[2]-vals[1]===1 && vals[1]-vals[0]===1) || (vals[0]===2 && vals[1]===3 && vals[2]===14);
+            let isAnh = cards.every(c => c.val >= 11 && c.val <= 13);
+
+            if (isSap) return { score: 300 + vals[0], label: `Sáp ${cards[0].rank}` };
+            if (isLieng) return { score: 200 + vals[2], label: `Liêng ${cards[2].rank}` };
+            if (isAnh) return { score: 100, label: "Ảnh (Đầu người)" };
+
+            let points = cards.reduce((sum, c) => sum + (c.val >= 10 ? 0 : c.val), 0) % 10;
+            return { score: points, label: `${points} Điểm` };
         }
 
         // --- 12. BẮN CÁ ĐẠI DƯƠNG ---
@@ -1791,7 +1960,14 @@
 
         window.onload = () => { 
             db.ref('duc_game/accounts').once('value', (snapshot) => {
-                globalAccounts = snapshot.val() || [];
+                const rawVal = snapshot.val();
+                if (Array.isArray(rawVal)) {
+                    globalAccounts = rawVal;
+                } else if (rawVal && typeof rawVal === 'object') {
+                    globalAccounts = Object.values(rawVal);
+                } else {
+                    globalAccounts = [];
+                }
                 renderLobbyGames(); initAuth(); showScreen('lobby');
             });
         };
